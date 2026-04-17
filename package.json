@@ -1,0 +1,12 @@
+{
+  "name": "buzzer-genie-en-herbe-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "server": "node server/index.js",
+    "server:dev": "node --watch server/index.js"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1"
+  }
+}
