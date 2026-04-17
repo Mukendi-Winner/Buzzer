@@ -1,0 +1,91 @@
+.join-game {
+  min-height: 100svh;
+  padding: 120px 28px 36px;
+  background: linear-gradient(180deg, #faf7fb 0%, #f8f3fb 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #733d78;
+}
+
+.join-game__brand {
+  display: inline-flex;
+  align-items: center;
+  color: #733d78;
+  margin-bottom: 184px;
+}
+
+.join-game__brand-mark {
+  width: 148px;
+  height: auto;
+  flex: none;
+}
+
+.join-game__form {
+  width: min(100%, 284px);
+  display: grid;
+  gap: 28px;
+}
+
+.join-game__field input {
+  width: 100%;
+  height: 72px;
+  box-sizing: border-box;
+  border: 0;
+  border-bottom: 1px solid #7f8290;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 0 16px;
+  font: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: #8a4f8f;
+}
+
+.join-game__field input::placeholder {
+  color: #e0d9e6;
+}
+
+.join-game__field input:focus {
+  outline: none;
+  border-bottom-color: #733d78;
+}
+
+.join-game__submit {
+  width: 100%;
+  height: 54px;
+  border: 0;
+  border-radius: 999px;
+  background: #8a4f8f;
+  color: #fbf3fb;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease;
+}
+
+.join-game__submit:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+.join-game__submit:focus-visible {
+  outline: 3px solid rgba(138, 79, 143, 0.22);
+  outline-offset: 3px;
+}
+
+.join-game__submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.join-game__error {
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  color: #a54969;
+}

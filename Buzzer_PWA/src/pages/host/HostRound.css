@@ -1,0 +1,244 @@
+.host-round {
+  min-height: 100svh;
+  padding: 10px 0 24px;
+  background: linear-gradient(180deg, #fbf7fc 0%, #faf5fb 100%);
+  color: #4a4653;
+}
+
+.host-round__brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #733d78;
+  margin-bottom: 18px;
+}
+
+.host-round__brand-mark {
+  width: 136px;
+  height: auto;
+  flex: none;
+}
+
+.host-round__code-card {
+  width: min(100%, 196px);
+  margin: 0 auto 22px;
+  padding: 14px 16px 12px;
+  border-radius: 32px;
+  background: rgba(247, 241, 249, 0.95);
+  text-align: center;
+}
+
+.host-round__code-card p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  color: #8f8a97;
+}
+
+.host-round__code-card strong {
+  display: block;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: #8a4f8f;
+}
+
+.host-round__scoreboard,
+.host-round__queue,
+.host-round__footer {
+  padding-inline: 14px;
+}
+
+.host-round__scoreboard {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.host-round__score-card {
+  position: relative;
+  background: rgba(248, 243, 249, 0.96);
+  border-radius: 24px;
+  padding: 16px 22px;
+}
+
+.host-round__score-card::before {
+  content: '';
+  position: absolute;
+  inset: 8px auto 8px 0;
+  width: 3px;
+  border-radius: 999px;
+}
+
+.host-round__score-card--purple::before {
+  background: #9c5aa4;
+}
+
+.host-round__score-card--gold::before {
+  background: #9d9700;
+}
+
+.host-round__team-label {
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #bf839e;
+}
+
+.host-round__score-value {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.host-round__score-value strong {
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 800;
+  color: #17151d;
+}
+
+.host-round__score-value span {
+  font-size: 18px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #7d7985;
+}
+
+.host-round__queue-header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.host-round__queue-header h1 {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #413d49;
+}
+
+.host-round__queue-header span {
+  font-size: 12px;
+  color: #b4aebb;
+}
+
+.host-round__queue-list {
+  display: grid;
+  gap: 10px;
+}
+
+.host-round__queue-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+}
+
+.host-round__queue-rank {
+  width: 12px;
+  font-size: 16px;
+  color: #e0d4e3;
+}
+
+.host-round__queue-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.host-round__queue-main strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.2;
+  color: #5a5661;
+}
+
+.host-round__queue-main p {
+  margin: 2px 0 0;
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  color: #b5aebb;
+  text-transform: uppercase;
+}
+
+.host-round__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.host-round__action {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.host-round__action:disabled,
+.host-round__footer-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.host-round__action--fail {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  color: #d5c8d6;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.host-round__action--success {
+  height: 32px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: #8a4f8f;
+  color: #fbf3fb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.host-round__status {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.host-round__status--success {
+  color: #8a4f8f;
+}
+
+.host-round__status--failed {
+  color: #c8aebc;
+}
+
+.host-round__footer {
+  margin-top: 28px;
+}
+
+.host-round__error {
+  margin: 16px 14px 0;
+  font-size: 13px;
+  color: #a54969;
+}
+
+.host-round__footer-button {
+  width: 100%;
+  height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(240, 234, 243, 0.95);
+  color: #a39ba9;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+}
