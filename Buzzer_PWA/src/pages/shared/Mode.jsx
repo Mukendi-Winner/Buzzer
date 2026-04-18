@@ -5,13 +5,13 @@ import AppLogo from '../../components/AppLogo.jsx'
 const options = [
   {
     id: 'player',
-    label: 'PLAYER',
+    label: 'JOUEUR',
     tone: 'light',
     icon: <GamepadIcon />,
   },
   {
     id: 'host',
-    label: 'HOST',
+    label: 'HOTE',
     tone: 'accent',
     icon: <GroupIcon />,
   },

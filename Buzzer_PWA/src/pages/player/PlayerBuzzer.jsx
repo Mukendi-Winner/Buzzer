@@ -131,7 +131,7 @@ function PlayerBuzzer() {
 
       <section className="player-buzzer__body" aria-labelledby="player-rank">
         <p id="player-rank" className="player-buzzer__rank">
-          YOU ARE <span>#{playerState.rank ?? '--'}</span>
+          Vous êtes le <span>#{playerState.rank ?? '--'}</span>
         </p>
 
         <button
