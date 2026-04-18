@@ -155,7 +155,7 @@ function HostRound() {
                 <div className="host-round__queue-main">
                   <strong>{entry.playerName}</strong>
                   <p>
-                    {(team?.shortName || team?.name || 'Équipe').toUpperCase()} •{' '}
+                    {(team?.name || 'Équipe').toUpperCase()} •{' '}
                     {entry.responseTimeLabel}
                   </p>
                 </div>

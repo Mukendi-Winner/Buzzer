@@ -82,7 +82,7 @@ export function buildRoomData(room) {
     return {
       id: incomingTeam.id || defaultTeam.id,
       name: incomingTeam.name || defaultTeam.name,
-      shortName: incomingTeam.shortName || defaultTeam.shortName,
+      shortName: incomingTeam.shortName || incomingTeam.name || defaultTeam.name,
       score:
         typeof incomingTeam.score === 'number'
           ? incomingTeam.score
