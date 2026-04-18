@@ -18,6 +18,7 @@ function HostRound() {
   const activeEntry =
     room.queue.find((entry) => entry.isActive || entry.status === 'pending') || null
   const roomCode = room.gameCode || readHostSession()?.roomCode
+  const canResetQueue = room.queue.length > 0 || !room.roundOpen
 
   useEffect(() => {
     const socket = getSocket()
@@ -197,9 +198,11 @@ function HostRound() {
       <div className="host-round__footer">
         <button
           type="button"
-          className="host-round__footer-button"
+          className={`host-round__footer-button ${
+            canResetQueue ? 'host-round__footer-button--active' : ''
+          }`}
           onClick={openRound}
-          disabled={busyAction === 'open-round'}
+          disabled={busyAction === 'open-round' || !canResetQueue}
         >
           RÉINITIALISER • SUIVANT
         </button>

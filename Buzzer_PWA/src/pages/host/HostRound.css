@@ -241,4 +241,13 @@
   font-weight: 800;
   letter-spacing: 0.16em;
   cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
+}
+
+.host-round__footer-button--active {
+  background: #8a4f8f;
+  color: #fbf3fb;
 }
