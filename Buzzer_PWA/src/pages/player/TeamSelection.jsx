@@ -93,6 +93,11 @@ function TeamSelection() {
                 onClick={() => setSelectedTeamId(team.id)}
                 disabled={isFull}
               >
+                {isSelected ? (
+                  <span className="team-selection__selected-badge" aria-hidden="true">
+                    CHOISIE
+                  </span>
+                ) : null}
                 <span className="team-selection__label">{team.name}</span>
                 <span className="team-selection__number">{index + 1}</span>
                 {isFull ? (

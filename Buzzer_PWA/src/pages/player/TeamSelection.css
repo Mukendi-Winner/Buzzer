@@ -118,7 +118,27 @@
 }
 
 .team-selection__card--selected {
-  box-shadow: 0 12px 26px rgba(138, 79, 143, 0.16);
+  box-shadow:
+    0 0 0 4px rgba(108, 167, 255, 0.9),
+    0 0 0 10px rgba(108, 167, 255, 0.18),
+    0 18px 34px rgba(138, 79, 143, 0.2);
+  transform: translateY(-2px) scale(1.01);
+}
+
+.team-selection__selected-badge {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #3267c7;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
 }
 
 .team-selection__label {
