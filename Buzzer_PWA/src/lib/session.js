@@ -11,7 +11,7 @@ export function writeHostSession(value) {
 }
 
 export function clearHostSession() {
-  sessionStorage.removeItem(HOST_SESSION_KEY)
+  removeJson(HOST_SESSION_KEY, sessionStorage)
 }
 
 export function readPlayerSession() {
@@ -23,7 +23,7 @@ export function writePlayerSession(value) {
 }
 
 export function clearPlayerSession() {
-  sessionStorage.removeItem(PLAYER_SESSION_KEY)
+  removeJson(PLAYER_SESSION_KEY, localStorage)
 }
 
 export function readPlayerJoinInfo() {
@@ -35,12 +35,13 @@ export function writePlayerJoinInfo(value) {
 }
 
 export function clearPlayerJoinInfo() {
-  sessionStorage.removeItem(PLAYER_JOIN_KEY)
+  removeJson(PLAYER_JOIN_KEY, localStorage)
 }
 
 function readJson(key) {
   try {
-    const value = sessionStorage.getItem(key)
+    const storage = getStorageForKey(key)
+    const value = storage?.getItem(key)
     return value ? JSON.parse(value) : null
   } catch {
     return null
@@ -48,5 +49,26 @@ function readJson(key) {
 }
 
 function writeJson(key, value) {
-  sessionStorage.setItem(key, JSON.stringify(value))
+  const storage = getStorageForKey(key)
+  if (!storage) {
+    return
+  }
+
+  storage.setItem(key, JSON.stringify(value))
+}
+
+function removeJson(key, storage) {
+  try {
+    storage?.removeItem(key)
+  } catch {
+    // Ignore storage cleanup failures.
+  }
+}
+
+function getStorageForKey(key) {
+  if (key === PLAYER_SESSION_KEY || key === PLAYER_JOIN_KEY) {
+    return localStorage
+  }
+
+  return sessionStorage
 }

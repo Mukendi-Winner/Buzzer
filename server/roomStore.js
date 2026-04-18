@@ -2,6 +2,7 @@ const TEAM_SIZE_LIMIT = 5
 const ROUND_POINTS = 1
 const ROOM_CODE_LENGTH = 6
 const ROOM_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+export const PLAYER_RECONNECT_WINDOW_MS = 10 * 60 * 1000
 
 export class SocketEventError extends Error {
   constructor(code, message) {
@@ -61,7 +62,6 @@ export function joinRoom(store, socketId, payload) {
 
   const nickname = sanitizeNickname(payload?.nickname)
   const team = getTeamOrThrow(room, payload?.teamId)
-
   const teamPlayerCount = room.players.filter((player) => player.teamId === team.id).length
   if (teamPlayerCount >= team.maxPlayers) {
     throw new SocketEventError('TEAM_FULL', 'Selected team is already full.')
@@ -74,9 +74,33 @@ export function joinRoom(store, socketId, payload) {
     teamId: team.id,
     connected: true,
     hasBuzzedInRound: false,
+    lastSeenAt: Date.now(),
+    disconnectDeadlineAt: null,
   }
 
   room.players.push(player)
+  store.socketToPresence.set(socketId, {
+    roomCode: room.code,
+    role: 'player',
+    playerId: player.id,
+  })
+
+  return { room, player }
+}
+
+export function resumePlayerSession(store, socketId, payload) {
+  const room = getRoomOrThrow(store, payload?.roomCode)
+  const playerId = String(payload?.playerId || '').trim()
+  if (!playerId) {
+    throw new SocketEventError('INVALID_PLAYER_SESSION', 'Player session is missing.')
+  }
+
+  const player = getPlayerByIdOrThrow(room, playerId)
+  player.socketId = socketId
+  player.connected = true
+  player.lastSeenAt = Date.now()
+  player.disconnectDeadlineAt = null
+
   store.socketToPresence.set(socketId, {
     roomCode: room.code,
     role: 'player',
@@ -146,11 +170,16 @@ export function addBuzz(store, socketId, payload) {
     throw new SocketEventError('ROUND_CLOSED', 'Buzzing is currently disabled.')
   }
 
+  if (!player.connected) {
+    throw new SocketEventError('PLAYER_DISCONNECTED', 'Reconnect before buzzing.')
+  }
+
   if (player.hasBuzzedInRound) {
     throw new SocketEventError('ALREADY_BUZZED', 'You already buzzed during this round.')
   }
 
   player.hasBuzzedInRound = true
+  player.lastSeenAt = Date.now()
 
   const entry = {
     id: `buzz-${crypto.randomUUID()}`,
@@ -194,16 +223,52 @@ export function removeSocket(store, socketId) {
   }
 
   if (presence.role === 'player' && presence.playerId) {
-    removePlayerFromRoom(room, presence.playerId)
+    const player = room.players.find((item) => item.id === presence.playerId)
+    if (!player) {
+      return { removed: false }
+    }
+
+    player.connected = false
+    player.socketId = null
+    player.lastSeenAt = Date.now()
+    player.disconnectDeadlineAt = Date.now() + PLAYER_RECONNECT_WINDOW_MS
+
     return {
       removed: true,
-      type: 'player',
+      type: 'player-disconnected',
       roomCode: room.code,
       room,
+      playerId: player.id,
+      expiresAt: player.disconnectDeadlineAt,
     }
   }
 
   return { removed: false }
+}
+
+export function expireDisconnectedPlayer(store, roomCode, playerId) {
+  const room = store.rooms.get(String(roomCode || '').trim().toUpperCase())
+  if (!room) {
+    return { removed: false }
+  }
+
+  const player = room.players.find((item) => item.id === playerId)
+  if (!player || player.connected || !player.disconnectDeadlineAt) {
+    return { removed: false, room }
+  }
+
+  if (Date.now() < player.disconnectDeadlineAt) {
+    return { removed: false, room }
+  }
+
+  removePlayerFromRoom(room, playerId)
+  return {
+    removed: true,
+    type: 'player-expired',
+    roomCode: room.code,
+    room,
+    playerId,
+  }
 }
 
 export function removePlayerByRequest(store, socketId, payload) {
@@ -216,7 +281,7 @@ export function removePlayerByRequest(store, socketId, payload) {
   removePlayerFromRoom(room, presence.playerId)
   store.socketToPresence.delete(socketId)
 
-  return room
+  return { room, playerId: presence.playerId }
 }
 
 export function serializeRoom(room) {
@@ -239,6 +304,7 @@ export function serializeRoom(room) {
       teamId: player.teamId,
       connected: player.connected,
       hasBuzzedInRound: player.hasBuzzedInRound,
+      disconnectDeadlineAt: player.disconnectDeadlineAt,
     })),
     buzzQueue: room.buzzQueue.map((entry, index) => ({
       id: entry.id,
@@ -255,14 +321,12 @@ export function serializeRoom(room) {
 
 export function getPlayerBuzzStatus(room, playerId) {
   const player = room.players.find((item) => item.id === playerId)
-  const rank =
-    room.buzzQueue.findIndex((entry) => entry.playerId === playerId) >= 0
-      ? room.buzzQueue.findIndex((entry) => entry.playerId === playerId) + 1
-      : null
+  const queueIndex = room.buzzQueue.findIndex((entry) => entry.playerId === playerId)
 
   return {
     hasBuzzed: player?.hasBuzzedInRound ?? false,
-    rank,
+    rank: queueIndex >= 0 ? queueIndex + 1 : null,
+    connected: Boolean(player?.connected),
   }
 }
 
@@ -313,7 +377,10 @@ function removePlayerFromRoom(room, playerId) {
     return
   }
 
-  if (!room.buzzQueue[room.activeBuzzIndex] || room.buzzQueue[room.activeBuzzIndex].status !== 'pending') {
+  if (
+    !room.buzzQueue[room.activeBuzzIndex] ||
+    room.buzzQueue[room.activeBuzzIndex].status !== 'pending'
+  ) {
     const nextIndex = findNextPendingIndex(room.buzzQueue, room.activeBuzzIndex)
     if (nextIndex === null) {
       endRound(room)

@@ -5,6 +5,7 @@ import AppLogo from '../../components/AppLogo.jsx'
 import { buildRoomData, demoRoom } from '../../lib/roomData.js'
 import {
   clearPlayerJoinInfo,
+  clearPlayerSession,
   writePlayerSession,
   readPlayerJoinInfo,
 } from '../../lib/session.js'
@@ -34,6 +35,7 @@ function TeamSelection() {
 
     try {
       const socket = getSocket()
+      clearPlayerSession()
       const response = await emitWithAck(socket, 'player:join-room', {
         roomCode: room.gameCode,
         nickname: nickname.trim(),
