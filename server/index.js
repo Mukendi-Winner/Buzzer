@@ -2,17 +2,20 @@ import { createServer } from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { Server } from 'socket.io'
 import {
+  PLAYER_RECONNECT_WINDOW_MS,
   SocketEventError,
   addBuzz,
   checkRoom,
   createRoom,
   createStore,
+  expireDisconnectedPlayer,
   getPlayerBuzzStatus,
   joinRoom,
   markAnswer,
   openRound,
   removePlayerByRequest,
   removeSocket,
+  resumePlayerSession,
   serializeRoom,
 } from './roomStore.js'
 
@@ -41,6 +44,7 @@ export function createSocketServer(options = {}) {
   })
 
   const store = createStore()
+  const playerExpiryTimers = new Map()
 
   io.on('connection', (socket) => {
     socket.on('host:create-room', (payload, callback) => {
@@ -67,6 +71,7 @@ export function createSocketServer(options = {}) {
       handleEvent(socket, callback, () => {
         const { room, player } = joinRoom(store, socket.id, payload)
         socket.join(room.code)
+        clearPlayerExpiry(player.id)
         emitRoomState(room)
         emitPlayerStatuses(room)
         return {
@@ -76,6 +81,25 @@ export function createSocketServer(options = {}) {
             nickname: player.nickname,
             teamId: player.teamId,
           },
+        }
+      })
+    })
+
+    socket.on('player:resume-session', (payload, callback) => {
+      handleEvent(socket, callback, () => {
+        const { room, player } = resumePlayerSession(store, socket.id, payload)
+        socket.join(room.code)
+        clearPlayerExpiry(player.id)
+        emitRoomState(room)
+        emitPlayerStatuses(room)
+        return {
+          room: serializeRoom(room),
+          player: {
+            id: player.id,
+            nickname: player.nickname,
+            teamId: player.teamId,
+          },
+          playerStatus: getPlayerBuzzStatus(room, player.id),
         }
       })
     })
@@ -113,7 +137,8 @@ export function createSocketServer(options = {}) {
 
     socket.on('player:disconnect-room', (payload, callback) => {
       handleEvent(socket, callback, () => {
-        const room = removePlayerByRequest(store, socket.id, payload)
+        const { room, playerId } = removePlayerByRequest(store, socket.id, payload)
+        clearPlayerExpiry(playerId)
         socket.leave(room.code)
         emitRoomState(room)
         emitPlayerStatuses(room)
@@ -135,8 +160,11 @@ export function createSocketServer(options = {}) {
         return
       }
 
-      emitRoomState(result.room)
-      emitPlayerStatuses(result.room)
+      if (result.type === 'player-disconnected') {
+        schedulePlayerExpiry(result.roomCode, result.playerId, result.expiresAt)
+        emitRoomState(result.room)
+        emitPlayerStatuses(result.room)
+      }
     })
   })
 
@@ -148,7 +176,36 @@ export function createSocketServer(options = {}) {
 
   function emitPlayerStatuses(room) {
     for (const player of room.players) {
+      if (!player.socketId) {
+        continue
+      }
       io.to(player.socketId).emit('player:buzz-status', getPlayerBuzzStatus(room, player.id))
+    }
+  }
+
+  function schedulePlayerExpiry(roomCode, playerId, expiresAt) {
+    clearPlayerExpiry(playerId)
+
+    const delay = Math.max(0, (expiresAt || Date.now() + PLAYER_RECONNECT_WINDOW_MS) - Date.now())
+    const timeoutId = setTimeout(() => {
+      playerExpiryTimers.delete(playerId)
+      const result = expireDisconnectedPlayer(store, roomCode, playerId)
+      if (!result.removed) {
+        return
+      }
+
+      emitRoomState(result.room)
+      emitPlayerStatuses(result.room)
+    }, delay)
+
+    playerExpiryTimers.set(playerId, timeoutId)
+  }
+
+  function clearPlayerExpiry(playerId) {
+    const timeoutId = playerExpiryTimers.get(playerId)
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      playerExpiryTimers.delete(playerId)
     }
   }
 

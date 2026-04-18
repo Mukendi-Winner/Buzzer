@@ -1,16 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import './PlayerBuzzer.css'
 import AppLogo from '../../components/AppLogo.jsx'
 import { buildRoomData, demoRoom } from '../../lib/roomData.js'
 import { emitWithAck } from '../../lib/socketRequest.js'
-import { clearPlayerSession, readPlayerSession } from '../../lib/session.js'
+import {
+  clearPlayerSession,
+  readPlayerSession,
+  writePlayerSession,
+} from '../../lib/session.js'
 import { getSocket } from '../../lib/socket.js'
 
 function PlayerBuzzer() {
   const location = useLocation()
   const navigate = useNavigate()
   const savedPlayerSession = readPlayerSession()
+  const resumeAttemptRef = useRef(false)
   const room = useMemo(
     () => buildRoomData(location.state?.room || demoRoom),
     [location.state?.room],
@@ -19,7 +24,7 @@ function PlayerBuzzer() {
     location.state?.selectedTeamId || savedPlayerSession?.selectedTeamId || room.teams[0]?.id || null
   const nickname = location.state?.nickname || savedPlayerSession?.nickname || 'Player'
   const [playerState, setPlayerState] = useState(() => ({
-    connectionStatus: 'connected',
+    connectionStatus: savedPlayerSession?.playerId ? 'reconnecting' : 'connected',
     hasBuzzed: false,
     rank: null,
   }))
@@ -28,15 +33,67 @@ function PlayerBuzzer() {
     liveRoom.teams.find((team) => team.id === selectedTeamId) || liveRoom.teams[0]
   const [error, setError] = useState('')
   const roomCode = liveRoom.gameCode || savedPlayerSession?.roomCode
+  const playerId = location.state?.playerId || savedPlayerSession?.playerId || null
+
+  useEffect(() => {
+    if (playerId && roomCode) {
+      writePlayerSession({
+        roomCode,
+        playerId,
+        selectedTeamId,
+        nickname,
+      })
+    }
+  }, [nickname, playerId, roomCode, selectedTeamId])
 
   useEffect(() => {
     const socket = getSocket()
+
+    async function resumeSession() {
+      if (!playerId || !roomCode || resumeAttemptRef.current) {
+        return
+      }
+
+      resumeAttemptRef.current = true
+      setPlayerState((currentState) => ({
+        ...currentState,
+        connectionStatus: 'reconnecting',
+      }))
+
+      try {
+        const response = await emitWithAck(socket, 'player:resume-session', {
+          roomCode,
+          playerId,
+        })
+
+        setLiveRoom(buildRoomData(response.room))
+        setPlayerState({
+          connectionStatus: response.playerStatus?.connected ? 'connected' : 'reconnecting',
+          hasBuzzed: Boolean(response.playerStatus?.hasBuzzed),
+          rank: response.playerStatus?.rank ?? null,
+        })
+        writePlayerSession({
+          roomCode,
+          playerId: response.player.id,
+          selectedTeamId: response.player.teamId,
+          nickname: response.player.nickname,
+        })
+        setError('')
+      } catch (socketError) {
+        clearPlayerSession()
+        setError(socketError.message || 'Session introuvable.')
+        navigate('/player/join')
+      } finally {
+        resumeAttemptRef.current = false
+      }
+    }
 
     function handleBuzzStatus(payload) {
       setPlayerState((currentState) => ({
         ...currentState,
         hasBuzzed: Boolean(payload.hasBuzzed),
         rank: payload.rank,
+        connectionStatus: payload.connected ? 'connected' : currentState.connectionStatus,
       }))
     }
 
@@ -51,16 +108,13 @@ function PlayerBuzzer() {
     }
 
     function handleConnect() {
-      setPlayerState((currentState) => ({
-        ...currentState,
-        connectionStatus: 'connected',
-      }))
+      resumeSession()
     }
 
     function handleDisconnect() {
       setPlayerState((currentState) => ({
         ...currentState,
-        connectionStatus: 'disconnected',
+        connectionStatus: 'reconnecting',
       }))
     }
 
@@ -70,6 +124,10 @@ function PlayerBuzzer() {
     socket.on('connect', handleConnect)
     socket.on('disconnect', handleDisconnect)
 
+    if (socket.connected) {
+      resumeSession()
+    }
+
     return () => {
       socket.off('player:buzz-status', handleBuzzStatus)
       socket.off('room:state', handleRoomState)
@@ -77,10 +135,10 @@ function PlayerBuzzer() {
       socket.off('connect', handleConnect)
       socket.off('disconnect', handleDisconnect)
     }
-  }, [navigate])
+  }, [navigate, playerId, roomCode, selectedTeamId, nickname])
 
   async function handleBuzz() {
-    if (playerState.hasBuzzed || !roomCode) {
+    if (playerState.hasBuzzed || !roomCode || playerState.connectionStatus !== 'connected') {
       return
     }
 
@@ -140,7 +198,7 @@ function PlayerBuzzer() {
             playerState.hasBuzzed ? 'player-buzzer__button--locked' : ''
           }`}
           onClick={handleBuzz}
-          disabled={playerState.hasBuzzed}
+          disabled={playerState.hasBuzzed || playerState.connectionStatus !== 'connected'}
           aria-label={`Buzz for ${selectedTeam?.name || 'your team'}`}
         >
           <span>BUZZ</span>
