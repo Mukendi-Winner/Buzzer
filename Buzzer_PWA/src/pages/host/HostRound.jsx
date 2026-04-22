@@ -112,100 +112,102 @@ function HostRound() {
         <AppLogo className="host-round__brand-mark" />
       </header>
 
-      <section className="host-round__code-card" aria-label="Code du jeu">
-        <p>CODE DU JEU</p>
-        <strong>{room.gameCode}</strong>
-      </section>
+      <div className="host-round__content">
+        <section className="host-round__code-card" aria-label="Code du jeu">
+          <p>CODE DU JEU</p>
+          <strong>{room.gameCode}</strong>
+        </section>
 
-      <section className="host-round__scoreboard" aria-label="Points des équipes">
-        {room.teams.map((team) => (
-          <article
-            key={team.id}
-            className={`host-round__score-card host-round__score-card--${team.accent}`}
-          >
-            <p className="host-round__team-label">{team.name}</p>
-            <div className="host-round__score-value">
-              <strong>{team.score}</strong>
-              <span>PTS</span>
-            </div>
-          </article>
-        ))}
-      </section>
+        <section className="host-round__scoreboard" aria-label="Points des équipes">
+          {room.teams.map((team) => (
+            <article
+              key={team.id}
+              className={`host-round__score-card host-round__score-card--${team.accent}`}
+            >
+              <p className="host-round__team-label">{team.name}</p>
+              <div className="host-round__score-value">
+                <strong>{team.score}</strong>
+                <span>PTS</span>
+              </div>
+            </article>
+          ))}
+        </section>
 
-      <section className="host-round__queue" aria-labelledby="queue-title">
-        <div className="host-round__queue-header">
-          <h1 id="queue-title">File d&apos;attente</h1>
-          <span>({room.queue.length})</span>
-        </div>
+        <section className="host-round__queue" aria-labelledby="queue-title">
+          <div className="host-round__queue-header">
+            <h1 id="queue-title">File d&apos;attente</h1>
+            <span>({room.queue.length})</span>
+          </div>
 
-        <div className="host-round__queue-list">
-          {room.queue.map((entry, index) => {
-            const team = room.teams.find((item) => item.id === entry.teamId)
-            const isActive = activeEntry?.id === entry.id
+          <div className="host-round__queue-list">
+            {room.queue.map((entry, index) => {
+              const team = room.teams.find((item) => item.id === entry.teamId)
+              const isActive = activeEntry?.id === entry.id
 
-            return (
-              <article
-                key={entry.id}
-                className={`host-round__queue-item ${
-                  isActive ? 'host-round__queue-item--active' : ''
-                }`}
-              >
-                <span className="host-round__queue-rank">{index + 1}</span>
+              return (
+                <article
+                  key={entry.id}
+                  className={`host-round__queue-item ${
+                    isActive ? 'host-round__queue-item--active' : ''
+                  }`}
+                >
+                  <span className="host-round__queue-rank">{index + 1}</span>
 
-                <div className="host-round__queue-main">
-                  <strong>{entry.playerName}</strong>
-                  <p>
-                    {(team?.name || 'Équipe').toUpperCase()} •{' '}
-                    {entry.responseTimeLabel}
-                  </p>
-                </div>
-
-                {isActive ? (
-                  <div className="host-round__actions">
-                    <button
-                      type="button"
-                      className="host-round__action host-round__action--fail"
-                      onClick={() => scoreEntry('failed')}
-                      disabled={Boolean(busyAction)}
-                      aria-label={`Marquer ${entry.playerName} comme incorrect`}
-                    >
-                      ×
-                    </button>
-                    <button
-                      type="button"
-                      className="host-round__action host-round__action--success"
-                      onClick={() => scoreEntry('success')}
-                      disabled={Boolean(busyAction)}
-                    >
-                      VALIDER
-                    </button>
+                  <div className="host-round__queue-main">
+                    <strong>{entry.playerName}</strong>
+                    <p>
+                      {(team?.name || 'Équipe').toUpperCase()} •{' '}
+                      {entry.responseTimeLabel}
+                    </p>
                   </div>
-                ) : (
-                  <span
-                    className={`host-round__status host-round__status--${entry.status}`}
-                  >
-                    {getStatusLabel(entry.status)}
-                  </span>
-                )}
-              </article>
-            )
-          })}
+
+                  {isActive ? (
+                    <div className="host-round__actions">
+                      <button
+                        type="button"
+                        className="host-round__action host-round__action--fail"
+                        onClick={() => scoreEntry('failed')}
+                        disabled={Boolean(busyAction)}
+                        aria-label={`Marquer ${entry.playerName} comme incorrect`}
+                      >
+                        ×
+                      </button>
+                      <button
+                        type="button"
+                        className="host-round__action host-round__action--success"
+                        onClick={() => scoreEntry('success')}
+                        disabled={Boolean(busyAction)}
+                      >
+                        VALIDER
+                      </button>
+                    </div>
+                  ) : (
+                    <span
+                      className={`host-round__status host-round__status--${entry.status}`}
+                    >
+                      {getStatusLabel(entry.status)}
+                    </span>
+                  )}
+                </article>
+              )
+            })}
+          </div>
+        </section>
+
+        {error ? <p className="host-round__error">{error}</p> : null}
+
+        <div className="host-round__footer">
+          <button
+            type="button"
+            className={`host-round__footer-button ${
+              canResetQueue ? 'host-round__footer-button--active' : ''
+            }`}
+            onClick={openRound}
+            disabled={busyAction === 'open-round' || !canResetQueue}
+          >
+            RÉINITIALISER • SUIVANT
+          </button>
         </div>
-      </section>
-
-      {error ? <p className="host-round__error">{error}</p> : null}
-
-      <div className="host-round__footer">
-        <button
-          type="button"
-          className={`host-round__footer-button ${
-            canResetQueue ? 'host-round__footer-button--active' : ''
-          }`}
-          onClick={openRound}
-          disabled={busyAction === 'open-round' || !canResetQueue}
-        >
-          RÉINITIALISER • SUIVANT
-        </button>
       </div>
     </main>
   )
@@ -233,4 +235,3 @@ function playBuzzSound() {
 }
 
 export default HostRound
-

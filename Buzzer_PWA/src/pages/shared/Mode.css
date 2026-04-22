@@ -1,8 +1,7 @@
 .mode-picker {
   min-height: 100svh;
   padding: 24px 20px 28px;
-  background:
-    linear-gradient(180deg, #faf7fb 0%, #f8f3fb 100%);
+  background: linear-gradient(180deg, #faf7fb 0%, #f8f3fb 100%);
   display: flex;
   flex-direction: column;
   gap: 34px;
@@ -10,7 +9,7 @@
 
 .brand {
   display: inline-flex;
-  align-items: flex-start;
+  align-items:center;
   color: #733d78;
   width: fit-content;
 }
@@ -95,4 +94,51 @@
   line-height: 1;
   font-weight: 800;
   letter-spacing: -0.04em;
+}
+
+@media (min-width: 1024px) {
+  .mode-picker {
+    padding: 0;
+    gap: 0;
+    display: grid;
+    grid-template-columns: minmax(320px, 35vw) 1fr;
+    background: linear-gradient(90deg, #fffefe 0 35%, #fbf6fc 35% 100%);
+  }
+
+  .brand {
+    min-height: 100svh;
+    justify-self: center;
+    align-self: center;
+  }
+
+  .brand-mark {
+    width: clamp(220px, 18vw, 290px);
+  }
+
+  .mode-panel {
+    width: min(100%, 760px);
+    margin: 0 auto;
+    background: transparent;
+    padding: 0 40px;
+    min-height: 100svh;
+    align-content: center;
+    justify-content: center;
+    grid-template-columns: repeat(2, minmax(240px, 304px));
+    gap: 34px;
+  }
+
+  .mode-card {
+    min-height: 268px;
+    border-radius: 24px;
+    gap: 20px;
+  }
+
+  .mode-card__icon {
+    width: 66px;
+    height: 66px;
+  }
+
+  .mode-card__label {
+    font-size: 21px;
+  }
 }

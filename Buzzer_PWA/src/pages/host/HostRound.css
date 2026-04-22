@@ -19,6 +19,11 @@
   flex: none;
 }
 
+.host-round__content {
+  display: grid;
+  align-content: start;
+}
+
 .host-round__code-card {
   width: min(100%, 196px);
   margin: 0 auto 22px;
@@ -250,4 +255,162 @@
 .host-round__footer-button--active {
   background: #8a4f8f;
   color: #fbf3fb;
+}
+
+@media (min-width: 1024px) {
+  .host-round {
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(320px, 35vw) 1fr;
+    background: linear-gradient(90deg, #fffefe 0 35%, #fbf6fc 35% 100%);
+    align-items: center;
+  }
+
+  .host-round__brand {
+    min-height: 100svh;
+    margin-bottom: 0;
+    justify-self: center;
+    align-self: center;
+  }
+
+  .host-round__brand-mark {
+    width: clamp(220px, 18vw, 290px);
+  }
+
+  .host-round__content {
+    min-height: 100svh;
+    width: min(100%, 760px);
+    margin: 0 auto;
+    padding: 34px 34px 28px;
+    align-content: start;
+  }
+
+  .host-round__code-card {
+    width: min(100%, 210px);
+    margin: 0 auto 46px;
+    padding: 14px 18px 12px;
+  }
+
+  .host-round__code-card p {
+    font-size: 11px;
+  }
+
+  .host-round__scoreboard,
+  .host-round__queue,
+  .host-round__footer {
+    padding-inline: 0;
+  }
+
+  .host-round__scoreboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 48px;
+    margin-bottom: 54px;
+  }
+
+  .host-round__score-card {
+    min-height: 116px;
+    border-radius: 22px;
+    padding: 16px 18px 16px 22px;
+  }
+
+  .host-round__score-card::before {
+    inset: 8px auto 8px 0;
+    width: 3px;
+  }
+
+  .host-round__team-label {
+    font-size: 10px;
+    margin-bottom: 10px;
+  }
+
+  .host-round__score-value strong {
+    font-size: 44px;
+  }
+
+  .host-round__score-value span {
+    font-size: 22px;
+  }
+
+  .host-round__queue {
+    width: min(100%, 420px);
+    margin: 0 auto;
+  }
+
+  .host-round__queue-header {
+    margin-bottom: 18px;
+  }
+
+  .host-round__queue-header h1 {
+    font-size: 16px;
+  }
+
+  .host-round__queue-header span {
+    font-size: 11px;
+  }
+
+  .host-round__queue-list {
+    gap: 18px;
+  }
+
+  .host-round__queue-item {
+    min-height: 34px;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .host-round__queue-rank {
+    width: 10px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .host-round__queue-main strong {
+    font-size: 15px;
+  }
+
+  .host-round__queue-main p {
+    font-size: 9px;
+  }
+
+  .host-round__actions {
+    gap: 12px;
+    margin-top: 1px;
+  }
+
+  .host-round__action--fail {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+
+  .host-round__action--success {
+    height: 28px;
+    padding: 0 16px;
+    font-size: 11px;
+  }
+
+  .host-round__status {
+    font-size: 11px;
+    margin-top: 3px;
+  }
+
+  .host-round__error {
+    margin: 16px auto 0;
+    width: min(100%, 420px);
+    text-align: center;
+  }
+
+  .host-round__footer {
+    width: min(100%, 420px);
+    margin: 46px auto 0;
+  }
+
+  .host-round__footer-button {
+    width: min(100%, 232px);
+    margin: 0 auto;
+    display: block;
+    height: 28px;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+  }
 }

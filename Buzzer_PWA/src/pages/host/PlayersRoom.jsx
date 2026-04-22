@@ -47,41 +47,43 @@ function PlayersRoom() {
         <AppLogo className="players-room__brand-mark" />
       </header>
 
-      <section className="players-room__code-card" aria-label="Code du jeu">
-        <p>CODE DU JEU</p>
-        <strong>{room.gameCode}</strong>
-      </section>
+      <div className="players-room__content">
+        <section className="players-room__code-card" aria-label="Code du jeu">
+          <p>CODE DU JEU</p>
+          <strong>{room.gameCode}</strong>
+        </section>
 
-      <section className="players-room__teams">
-        {room.teams.map((team) => (
-          <section key={team.id} className="players-room__team">
-            <h2>{team.name}</h2>
-            <div className="players-room__player-list">
-              {team.players.map((player, index) => (
-                <article
-                  key={player.id || `${team.id}-${player.name || index}`}
-                  className="players-room__player-card"
-                >
-                  <span className="players-room__player-badge">
-                    {getPlayerBadge(player.name)}
-                  </span>
-                  <span className="players-room__player-name">{player.name}</span>
-                </article>
-              ))}
-            </div>
-          </section>
-        ))}
-      </section>
+        <section className="players-room__teams">
+          {room.teams.map((team) => (
+            <section key={team.id} className="players-room__team">
+              <h2>{team.name}</h2>
+              <div className="players-room__player-list">
+                {team.players.map((player, index) => (
+                  <article
+                    key={player.id || `${team.id}-${player.name || index}`}
+                    className="players-room__player-card"
+                  >
+                    <span className="players-room__player-badge">
+                      {getPlayerBadge(player.name)}
+                    </span>
+                    <span className="players-room__player-name">{player.name}</span>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ))}
+        </section>
 
-      {error ? <p className="players-room__error">{error}</p> : null}
+        {error ? <p className="players-room__error">{error}</p> : null}
 
-      <button
-        type="button"
-        className="players-room__start-button"
-        onClick={() => navigate('/host-round', { state: { room } })}
-      >
-        LANCER LA PARTIE
-      </button>
+        <button
+          type="button"
+          className="players-room__start-button"
+          onClick={() => navigate('/host-round', { state: { room } })}
+        >
+          LANCER LA PARTIE
+        </button>
+      </div>
     </main>
   )
 }

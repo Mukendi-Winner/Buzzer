@@ -4,16 +4,16 @@ import AppLogo from '../../components/AppLogo.jsx'
 
 const options = [
   {
-    id: 'player',
-    label: 'JOUEUR',
-    tone: 'light',
-    icon: <GamepadIcon />,
-  },
-  {
     id: 'host',
-    label: 'HOTE',
+    label: 'HOST',
     tone: 'accent',
     icon: <GroupIcon />,
+  },
+  {
+    id: 'player',
+    label: 'PLAYER',
+    tone: 'light',
+    icon: <GamepadIcon />,
   },
 ]
 

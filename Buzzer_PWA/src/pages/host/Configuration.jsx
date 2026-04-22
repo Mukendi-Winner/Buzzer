@@ -50,39 +50,41 @@ function Configuration() {
         <AppLogo className="configuration-brand__mark" />
       </header>
 
-      <section className="configuration-hero" aria-labelledby="configuration-title">
-        <h1 id="configuration-title">Configuration</h1>
-        <p>Nommez vos deux équipes pour commencer.</p>
-      </section>
+      <div className="configuration-content">
+        <section className="configuration-hero" aria-labelledby="configuration-title">
+          <h1 id="configuration-title">Configuration</h1>
+          <p>Nommez vos deux équipes pour commencer.</p>
+        </section>
 
-      <form className="configuration-form" onSubmit={handleSubmit}>
-        <label className="configuration-field">
-          <span>ÉQUIPE A</span>
-          <input
-            type="text"
-            name="teamA"
-            placeholder="Nom de la faction"
-            value={teamAName}
-            onChange={(event) => setTeamAName(event.target.value)}
-          />
-        </label>
+        <form className="configuration-form" onSubmit={handleSubmit}>
+          <label className="configuration-field">
+            <span>ÉQUIPE A</span>
+            <input
+              type="text"
+              name="teamA"
+              placeholder="Nom de la faction"
+              value={teamAName}
+              onChange={(event) => setTeamAName(event.target.value)}
+            />
+          </label>
 
-        <label className="configuration-field">
-          <span>ÉQUIPE B</span>
-          <input
-            type="text"
-            name="teamB"
-            placeholder="Nom de la faction"
-            value={teamBName}
-            onChange={(event) => setTeamBName(event.target.value)}
-          />
-        </label>
+          <label className="configuration-field">
+            <span>ÉQUIPE B</span>
+            <input
+              type="text"
+              name="teamB"
+              placeholder="Nom de la faction"
+              value={teamBName}
+              onChange={(event) => setTeamBName(event.target.value)}
+            />
+          </label>
 
-        <button type="submit" className="configuration-submit" disabled={submitting}>
-          {submitting ? 'CREATION...' : 'LANCER LA PARTIE'}
-        </button>
-        {error ? <p className="configuration-error">{error}</p> : null}
-      </form>
+          <button type="submit" className="configuration-submit" disabled={submitting}>
+            {submitting ? 'CREATION...' : 'LANCER LA PARTIE'}
+          </button>
+          {error ? <p className="configuration-error">{error}</p> : null}
+        </form>
+      </div>
     </main>
   )
 }
