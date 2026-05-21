@@ -16,6 +16,12 @@ function PlayerBuzzer() {
   const navigate = useNavigate()
   const savedPlayerSession = readPlayerSession()
   const resumeAttemptRef = useRef(false)
+  const skipRouteLeaveDisconnectRef = useRef(false)
+  const allowRouteLeaveDisconnectRef = useRef(false)
+  const latestSessionRef = useRef({
+    roomCode: null,
+    playerId: null,
+  })
   const room = useMemo(
     () => buildRoomData(location.state?.room || demoRoom),
     [location.state?.room],
@@ -34,6 +40,37 @@ function PlayerBuzzer() {
   const [error, setError] = useState('')
   const roomCode = liveRoom.gameCode || savedPlayerSession?.roomCode
   const playerId = location.state?.playerId || savedPlayerSession?.playerId || null
+
+  useEffect(() => {
+    latestSessionRef.current = {
+      roomCode,
+      playerId,
+    }
+  }, [playerId, roomCode])
+
+  useEffect(() => {
+    const activationTimeout = window.setTimeout(() => {
+      allowRouteLeaveDisconnectRef.current = true
+    }, 0)
+
+    return () => {
+      window.clearTimeout(activationTimeout)
+      const socket = getSocket()
+      const { roomCode: activeRoomCode, playerId: activePlayerId } = latestSessionRef.current
+
+      if (
+        skipRouteLeaveDisconnectRef.current ||
+        !allowRouteLeaveDisconnectRef.current ||
+        !activeRoomCode ||
+        !activePlayerId
+      ) {
+        return
+      }
+
+      socket.emit('player:disconnect-room', { roomCode: activeRoomCode })
+      clearPlayerSession()
+    }
+  }, [])
 
   useEffect(() => {
     if (playerId && roomCode) {
@@ -80,6 +117,7 @@ function PlayerBuzzer() {
         })
         setError('')
       } catch (socketError) {
+        skipRouteLeaveDisconnectRef.current = true
         clearPlayerSession()
         setError(socketError.message || 'Session introuvable.')
         navigate('/player/join')
@@ -102,6 +140,7 @@ function PlayerBuzzer() {
     }
 
     function handleRoomClosed() {
+      skipRouteLeaveDisconnectRef.current = true
       setError('La partie a ete fermee.')
       clearPlayerSession()
       navigate('/')
@@ -153,6 +192,8 @@ function PlayerBuzzer() {
   }
 
   async function handleDisconnect() {
+    skipRouteLeaveDisconnectRef.current = true
+
     try {
       const socket = getSocket()
       if (roomCode) {
