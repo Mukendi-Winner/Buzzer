@@ -229,6 +229,12 @@
   margin-top: 28px;
 }
 
+.host-round__secondary-actions {
+  display: grid;
+  gap: 14px;
+  margin: 40px 14px 0;
+}
+
 .host-round__error {
   margin: 16px 14px 0;
   font-size: 13px;
@@ -255,6 +261,40 @@
 .host-round__footer-button--active {
   background: #8a4f8f;
   color: #fbf3fb;
+}
+
+.host-round__secondary-button {
+  width: 100%;
+  height: 42px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    filter 160ms ease,
+    opacity 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.host-round__secondary-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.host-round__secondary-button--primary {
+  border: 0;
+  background: #8a4f8f;
+  color: #fbf3fb;
+}
+
+.host-round__secondary-button--ghost {
+  border: 1px solid rgba(138, 79, 143, 0.28);
+  background: rgba(255, 255, 255, 0.7);
+  color: #7d5a82;
 }
 
 @media (min-width: 1024px) {
@@ -412,5 +452,19 @@
     height: 28px;
     font-size: 9px;
     letter-spacing: 0.2em;
+  }
+
+  .host-round__secondary-actions {
+    width: min(100%, 420px);
+    margin: 54px auto 0;
+    gap: 18px;
+  }
+
+  .host-round__secondary-button {
+    width: min(100%, 296px);
+    margin: 0 auto;
+    display: block;
+    height: 42px;
+    font-size: 11px;
   }
 }

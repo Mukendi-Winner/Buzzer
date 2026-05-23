@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import './HostRound.css'
 import buzzSound from '../../assets/Ding.mp3'
 import AppLogo from '../../components/AppLogo.jsx'
 import { buildRoomData } from '../../lib/roomData.js'
 import { emitWithAck } from '../../lib/socketRequest.js'
-import { readHostSession } from '../../lib/session.js'
+import { clearHostSession, readHostSession } from '../../lib/session.js'
 import { getSocket } from '../../lib/socket.js'
 
 function HostRound() {
+  const navigate = useNavigate()
   const location = useLocation()
   const [room, setRoom] = useState(() => buildRoomData(location.state?.room))
   const [error, setError] = useState('')
@@ -104,6 +105,26 @@ function HostRound() {
     } finally {
       setBusyAction('')
     }
+  }
+
+
+  async function leaveHostRoom(nextPath) {
+    setBusyAction('leave-room')
+    setError('')
+
+    try {
+      const socket = getSocket()
+      if (roomCode) {
+        await emitWithAck(socket, 'host:disconnect-room', { roomCode })
+      }
+    } catch (socketError) {
+      setError(socketError.message || 'Impossible de fermer la partie.')
+      setBusyAction('')
+      return
+    }
+
+    clearHostSession()
+    navigate(nextPath)
   }
 
   return (
@@ -206,6 +227,25 @@ function HostRound() {
             disabled={busyAction === 'open-round' || !canResetQueue}
           >
             RÉINITIALISER • SUIVANT
+          </button>
+        </div>
+
+        <div className="host-round__secondary-actions">
+          <button
+            type="button"
+            className="host-round__secondary-button host-round__secondary-button--primary"
+            onClick={() => leaveHostRoom('/configuration')}
+            disabled={Boolean(busyAction)}
+          >
+            CRÉER UNE NOUVELLE PARTIE
+          </button>
+          <button
+            type="button"
+            className="host-round__secondary-button host-round__secondary-button--ghost"
+            onClick={() => leaveHostRoom('/')}
+            disabled={Boolean(busyAction)}
+          >
+            SE DÉCONNECTER
           </button>
         </div>
       </div>
