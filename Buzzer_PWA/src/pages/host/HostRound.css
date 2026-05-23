@@ -301,6 +301,30 @@
   color: #3d3945;
 }
 
+.host-round__points-input {
+  width: 40px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: center;
+  font: inherit;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 700;
+  color: #3d3945;
+  outline: none;
+}
+
+.host-round__points-input::-webkit-outer-spin-button,
+.host-round__points-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.host-round__points-input[type='number'] {
+  -moz-appearance: textfield;
+}
+
 .host-round__points-unit {
   font-size: 11px;
   line-height: 1.1;
@@ -557,6 +581,11 @@
   }
 
   .host-round__points-value {
+    font-size: 22px;
+  }
+
+  .host-round__points-input {
+    width: 36px;
     font-size: 22px;
   }
 

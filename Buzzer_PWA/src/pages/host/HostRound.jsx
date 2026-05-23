@@ -17,7 +17,10 @@ function HostRound() {
   const [busyAction, setBusyAction] = useState('')
   const [confirmAction, setConfirmAction] = useState(null)
   const [showPlayersStatus, setShowPlayersStatus] = useState(false)
+  const [questionPointsInput, setQuestionPointsInput] = useState(String((room.currentQuestionPoints || 1)))
   const openedRoundRef = useRef(false)
+  const pointsSyncTimeoutRef = useRef(null)
+  const pointsInputFocusedRef = useRef(false)
 
   const activeEntry =
     room.queue.find((entry) => entry.isActive || entry.status === 'pending') || null
@@ -28,7 +31,12 @@ function HostRound() {
     const socket = getSocket()
 
     function handleRoomState(payload) {
-      setRoom(buildRoomData(payload.room))
+      const nextRoom = buildRoomData(payload.room)
+      setRoom(nextRoom)
+
+      if (!pointsInputFocusedRef.current) {
+        setQuestionPointsInput(String(nextRoom.currentQuestionPoints || 1))
+      }
     }
 
     function handleBuzzSound() {
@@ -47,6 +55,12 @@ function HostRound() {
       socket.off('room:state', handleRoomState)
       socket.off('host:buzz-sound', handleBuzzSound)
       socket.off('room:closed', handleRoomClosed)
+    }
+  }, [])
+
+  useEffect(() => () => {
+    if (pointsSyncTimeoutRef.current) {
+      window.clearTimeout(pointsSyncTimeoutRef.current)
     }
   }, [])
 
@@ -115,7 +129,6 @@ function HostRound() {
       return
     }
 
-    setBusyAction('question-points')
     setError('')
 
     try {
@@ -126,9 +139,41 @@ function HostRound() {
       })
     } catch (socketError) {
       setError(socketError.message || 'Impossible de changer les points.')
-    } finally {
-      setBusyAction('')
     }
+  }
+
+  function scheduleQuestionPointsSync(nextPoints, delay = 250) {
+    if (pointsSyncTimeoutRef.current) {
+      window.clearTimeout(pointsSyncTimeoutRef.current)
+    }
+
+    pointsSyncTimeoutRef.current = window.setTimeout(() => {
+      void updateQuestionPoints(nextPoints)
+    }, delay)
+  }
+
+  function commitQuestionPoints(rawValue) {
+    const nextPoints = normalizeQuestionPointsValue(rawValue, room.currentQuestionPoints || 1)
+    setQuestionPointsInput(String(nextPoints))
+    void updateQuestionPoints(nextPoints)
+  }
+
+  function handleQuestionPointsChange(event) {
+    const nextValue = event.target.value.replace(/[^0-9]/g, '').slice(0, 2)
+    setQuestionPointsInput(nextValue)
+
+    if (!nextValue) {
+      return
+    }
+
+    scheduleQuestionPointsSync(normalizeQuestionPointsValue(nextValue, room.currentQuestionPoints || 1))
+  }
+
+  function nudgeQuestionPoints(direction) {
+    const currentPoints = normalizeQuestionPointsValue(questionPointsInput, room.currentQuestionPoints || 1)
+    const nextPoints = normalizeQuestionPointsValue(currentPoints + direction, currentPoints)
+    setQuestionPointsInput(String(nextPoints))
+    scheduleQuestionPointsSync(nextPoints, 0)
   }
 
   async function leaveHostRoom(nextPath) {
@@ -285,21 +330,40 @@ function HostRound() {
             <button
               type="button"
               className="host-round__points-step"
-              onClick={() => updateQuestionPoints(Math.max(1, (room.currentQuestionPoints || 1) - 1))}
-              disabled={busyAction === 'question-points' || (room.currentQuestionPoints || 1) <= 1}
+              onClick={() => nudgeQuestionPoints(-1)}
+              disabled={normalizeQuestionPointsValue(questionPointsInput, room.currentQuestionPoints || 1) <= 1}
               aria-label="Diminuer les points"
             >
               −
             </button>
             <div className="host-round__points-readout">
-              <strong className="host-round__points-value">{room.currentQuestionPoints || 1}</strong>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="host-round__points-input"
+                value={questionPointsInput}
+                onChange={handleQuestionPointsChange}
+                onFocus={() => {
+                  pointsInputFocusedRef.current = true
+                }}
+                onBlur={() => {
+                  pointsInputFocusedRef.current = false
+                  commitQuestionPoints(questionPointsInput)
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.currentTarget.blur()
+                  }
+                }}
+                aria-label="Points de la question"
+              />
               <span className="host-round__points-unit">PTS</span>
             </div>
             <button
               type="button"
               className="host-round__points-step"
-              onClick={() => updateQuestionPoints(Math.min(10, (room.currentQuestionPoints || 1) + 1))}
-              disabled={busyAction === 'question-points' || (room.currentQuestionPoints || 1) >= 10}
+              onClick={() => nudgeQuestionPoints(1)}
+              disabled={normalizeQuestionPointsValue(questionPointsInput, room.currentQuestionPoints || 1) >= 10}
               aria-label="Augmenter les points"
             >
               +
@@ -415,6 +479,15 @@ function HostRound() {
       />
     </main>
   )
+}
+
+function normalizeQuestionPointsValue(value, fallback = 1) {
+  const numericValue = Number(String(value || '').trim())
+  if (!Number.isFinite(numericValue)) {
+    return Math.min(10, Math.max(1, Math.round(fallback || 1)))
+  }
+
+  return Math.min(10, Math.max(1, Math.round(numericValue)))
 }
 
 function getStatusLabel(status) {
