@@ -29,7 +29,8 @@ function PlayerBuzzer() {
   )
   const selectedTeamId =
     location.state?.selectedTeamId || savedPlayerSession?.selectedTeamId || room.teams[0]?.id || null
-  const nickname = location.state?.nickname || savedPlayerSession?.nickname || 'Player'
+  const initialNickname = location.state?.nickname || savedPlayerSession?.nickname || 'Player'
+  const [currentNickname, setCurrentNickname] = useState(initialNickname)
   const [playerState, setPlayerState] = useState(() => ({
     connectionStatus: savedPlayerSession?.playerId ? 'reconnecting' : 'connected',
     hasBuzzed: false,
@@ -40,6 +41,8 @@ function PlayerBuzzer() {
     liveRoom.teams.find((team) => team.id === selectedTeamId) || liveRoom.teams[0]
   const [error, setError] = useState('')
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [draftNickname, setDraftNickname] = useState(initialNickname)
   const roomCode = liveRoom.gameCode || savedPlayerSession?.roomCode
   const playerId = location.state?.playerId || savedPlayerSession?.playerId || null
 
@@ -80,10 +83,15 @@ function PlayerBuzzer() {
         roomCode,
         playerId,
         selectedTeamId,
-        nickname,
+        nickname: currentNickname,
       })
     }
-  }, [nickname, playerId, roomCode, selectedTeamId])
+  }, [currentNickname, playerId, roomCode, selectedTeamId])
+
+  useEffect(() => {
+    setCurrentNickname(initialNickname)
+    setDraftNickname(initialNickname)
+  }, [initialNickname])
 
   useEffect(() => {
     const socket = getSocket()
@@ -106,6 +114,8 @@ function PlayerBuzzer() {
         })
 
         setLiveRoom(buildRoomData(response.room))
+        setCurrentNickname(response.player.nickname)
+        setDraftNickname(response.player.nickname)
         setPlayerState({
           connectionStatus: response.playerStatus?.connected ? 'connected' : 'reconnecting',
           hasBuzzed: Boolean(response.playerStatus?.hasBuzzed),
@@ -176,7 +186,7 @@ function PlayerBuzzer() {
       socket.off('connect', handleConnect)
       socket.off('disconnect', handleDisconnect)
     }
-  }, [navigate, playerId, roomCode, selectedTeamId, nickname])
+  }, [navigate, playerId, roomCode, selectedTeamId])
 
   async function handleBuzz() {
     if (playerState.hasBuzzed || !roomCode || playerState.connectionStatus !== 'connected') {
@@ -212,6 +222,36 @@ function PlayerBuzzer() {
       hasBuzzed: false,
     }))
     navigate('/')
+  }
+
+
+  async function handleNicknameUpdate() {
+    if (!roomCode || !draftNickname.trim()) {
+      return
+    }
+
+    setError('')
+
+    try {
+      const socket = getSocket()
+      const response = await emitWithAck(socket, 'player:update-nickname', {
+        roomCode,
+        nickname: draftNickname.trim(),
+      })
+
+      setLiveRoom(buildRoomData(response.room))
+      writePlayerSession({
+        roomCode,
+        playerId: response.player.id,
+        selectedTeamId: response.player.teamId,
+        nickname: response.player.nickname,
+      })
+      setCurrentNickname(response.player.nickname)
+      setEditingName(false)
+      setDraftNickname(response.player.nickname)
+    } catch (socketError) {
+      setError(socketError.message || 'Impossible de changer le prenom.')
+    }
   }
 
   return (
@@ -264,8 +304,49 @@ function PlayerBuzzer() {
         </button>
 
         <p className="player-buzzer__team-name">
-          {nickname} • {selectedTeam?.name || 'Équipe sélectionnée'}
+          {currentNickname} • {selectedTeam?.name || 'Équipe sélectionnée'}
         </p>
+
+        {editingName ? (
+          <div className="player-buzzer__name-editor">
+            <input
+              type="text"
+              value={draftNickname}
+              onChange={(event) => setDraftNickname(event.target.value)}
+              placeholder="Entrez votre prenom"
+              className="player-buzzer__name-input"
+            />
+            <div className="player-buzzer__name-actions">
+              <button
+                type="button"
+                className="player-buzzer__name-button player-buzzer__name-button--ghost"
+                onClick={() => {
+                  setDraftNickname(currentNickname)
+                  setEditingName(false)
+                }}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="player-buzzer__name-button player-buzzer__name-button--primary"
+                onClick={handleNicknameUpdate}
+                disabled={draftNickname.trim().length === 0}
+              >
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="player-buzzer__rename-trigger"
+            onClick={() => setEditingName(true)}
+          >
+            Modifier le prenom
+          </button>
+        )}
+
         {error ? <p className="player-buzzer__error">{error}</p> : null}
       </section>
 

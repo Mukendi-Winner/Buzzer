@@ -109,12 +109,12 @@ function TeamSelection() {
         </div>
 
         <label className="team-selection__nickname-field" htmlFor="player-nickname">
-          <span>Pseudo</span>
+          <span>Prenom</span>
           <input
             id="player-nickname"
             name="nickname"
             type="text"
-            placeholder="Entrez votre pseudo"
+            placeholder="Entrez votre prenom"
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
           />
