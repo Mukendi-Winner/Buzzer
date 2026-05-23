@@ -1,5 +1,6 @@
 const TEAM_SIZE_LIMIT = 5
-const ROUND_POINTS = 1
+const DEFAULT_ROUND_POINTS = 1
+const MAX_ROUND_POINTS = 10
 const ROOM_CODE_LENGTH = 6
 const ROOM_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 export const PLAYER_RECONNECT_WINDOW_MS = 10 * 60 * 1000
@@ -29,6 +30,7 @@ export function createRoom(store, hostSocketId, payload) {
     createdAt: Date.now(),
     roundOpen: false,
     activeBuzzIndex: null,
+    currentQuestionPoints: DEFAULT_ROUND_POINTS,
     teams: teams.map((team, index) => ({
       id: `team-${index + 1}`,
       name: team.name,
@@ -135,7 +137,7 @@ export function markAnswer(store, hostSocketId, payload) {
     entry.status = 'correct'
     const team = room.teams.find((item) => item.id === entry.teamId)
     if (team) {
-      team.score += ROUND_POINTS
+      team.score += room.currentQuestionPoints || DEFAULT_ROUND_POINTS
     }
     closeRound(room)
     return { room, resolvedEntry: entry }
@@ -155,6 +157,32 @@ export function markAnswer(store, hostSocketId, payload) {
   }
 
   throw new SocketEventError('INVALID_RESULT', 'Result must be correct or wrong.')
+}
+
+export function setQuestionPoints(store, hostSocketId, payload) {
+  const room = getHostRoomOrThrow(store, hostSocketId, payload?.roomCode)
+  room.currentQuestionPoints = normalizeQuestionPoints(payload?.points)
+  return room
+}
+
+export function updatePlayerNickname(store, socketId, payload) {
+  const presence = getPresenceOrThrow(store, socketId)
+  if (presence.role != 'player') {
+    throw new SocketEventError('INVALID_ROLE', 'Only players can update their name.')
+  }
+
+  const room = getRoomOrThrow(store, payload?.roomCode || presence.roomCode)
+  const player = getPlayerByIdOrThrow(room, presence.playerId)
+  const nickname = sanitizeNickname(payload?.nickname)
+
+  player.nickname = nickname
+  for (const entry of room.buzzQueue) {
+    if (entry.playerId === player.id) {
+      entry.nickname = nickname
+    }
+  }
+
+  return { room, player }
 }
 
 export function addBuzz(store, socketId, payload) {
@@ -284,11 +312,28 @@ export function removePlayerByRequest(store, socketId, payload) {
   return { room, playerId: presence.playerId }
 }
 
+export function removeHostByRequest(store, socketId, payload) {
+  const presence = getPresenceOrThrow(store, socketId)
+  if (presence.role !== 'host') {
+    throw new SocketEventError('INVALID_ROLE', 'Only the host can close a room.')
+  }
+
+  const room = getHostRoomOrThrow(store, socketId, payload?.roomCode || presence.roomCode)
+  store.socketToPresence.delete(socketId)
+  store.rooms.delete(room.code)
+
+  return {
+    room,
+    roomCode: room.code,
+  }
+}
+
 export function serializeRoom(room) {
   return {
     code: room.code,
     roundOpen: room.roundOpen,
     activeBuzzIndex: room.activeBuzzIndex,
+    currentQuestionPoints: room.currentQuestionPoints,
     teams: room.teams.map((team) => ({
       id: team.id,
       name: team.name,
@@ -402,6 +447,15 @@ function normalizeHostTeams(teams) {
 
     return { name }
   })
+}
+
+function normalizeQuestionPoints(value) {
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) {
+    return DEFAULT_ROUND_POINTS
+  }
+
+  return Math.min(MAX_ROUND_POINTS, Math.max(1, Math.round(numericValue)))
 }
 
 function sanitizeNickname(value) {

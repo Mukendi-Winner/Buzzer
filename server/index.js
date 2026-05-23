@@ -13,9 +13,12 @@ import {
   joinRoom,
   markAnswer,
   openRound,
+  removeHostByRequest,
   removePlayerByRequest,
   removeSocket,
+  setQuestionPoints,
   resumePlayerSession,
+  updatePlayerNickname,
   serializeRoom,
 } from './roomStore.js'
 
@@ -122,6 +125,16 @@ export function createSocketServer(options = {}) {
       })
     })
 
+
+    socket.on('host:set-question-points', (payload, callback) => {
+      handleEvent(socket, callback, () => {
+        const room = setQuestionPoints(store, socket.id, payload)
+        emitRoomState(room)
+        emitPlayerStatuses(room)
+        return { room: serializeRoom(room) }
+      })
+    })
+
     socket.on('player:buzz', (payload, callback) => {
       handleEvent(socket, callback, () => {
         const { room, player } = addBuzz(store, socket.id, payload)
@@ -135,6 +148,23 @@ export function createSocketServer(options = {}) {
       })
     })
 
+
+    socket.on('player:update-nickname', (payload, callback) => {
+      handleEvent(socket, callback, () => {
+        const { room, player } = updatePlayerNickname(store, socket.id, payload)
+        emitRoomState(room)
+        emitPlayerStatuses(room)
+        return {
+          room: serializeRoom(room),
+          player: {
+            id: player.id,
+            nickname: player.nickname,
+            teamId: player.teamId,
+          },
+        }
+      })
+    })
+
     socket.on('player:disconnect-room', (payload, callback) => {
       handleEvent(socket, callback, () => {
         const { room, playerId } = removePlayerByRequest(store, socket.id, payload)
@@ -142,6 +172,19 @@ export function createSocketServer(options = {}) {
         socket.leave(room.code)
         emitRoomState(room)
         emitPlayerStatuses(room)
+        return { room: serializeRoom(room) }
+      })
+    })
+
+
+    socket.on('host:disconnect-room', (payload, callback) => {
+      handleEvent(socket, callback, () => {
+        const { room, roomCode } = removeHostByRequest(store, socket.id, payload)
+        socket.leave(roomCode)
+        io.to(roomCode).emit('room:closed', {
+          roomCode,
+          reason: 'host_disconnected',
+        })
         return { room: serializeRoom(room) }
       })
     })
