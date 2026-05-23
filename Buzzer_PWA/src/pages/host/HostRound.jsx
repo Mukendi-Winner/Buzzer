@@ -275,7 +275,7 @@ function HostRound() {
               type="button"
               className="host-round__points-step"
               onClick={() => updateQuestionPoints(Math.max(1, (room.currentQuestionPoints || 1) - 1))}
-              disabled={Boolean(busyAction) || (room.currentQuestionPoints || 1) <= 1}
+              disabled={busyAction === 'question-points' || (room.currentQuestionPoints || 1) <= 1}
               aria-label="Diminuer les points"
             >
               −
@@ -288,7 +288,7 @@ function HostRound() {
               type="button"
               className="host-round__points-step"
               onClick={() => updateQuestionPoints(Math.min(10, (room.currentQuestionPoints || 1) + 1))}
-              disabled={Boolean(busyAction) || (room.currentQuestionPoints || 1) >= 10}
+              disabled={busyAction === 'question-points' || (room.currentQuestionPoints || 1) >= 10}
               aria-label="Augmenter les points"
             >
               +
