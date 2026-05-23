@@ -1,4 +1,4 @@
-const TEAM_SIZE_LIMIT = 5
+const TEAM_SIZE_LIMIT = 2
 const ROUND_POINTS = 1
 const ROOM_CODE_LENGTH = 6
 const ROOM_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -137,7 +137,7 @@ export function markAnswer(store, hostSocketId, payload) {
     if (team) {
       team.score += ROUND_POINTS
     }
-    endRound(room)
+    closeRound(room)
     return { room, resolvedEntry: entry }
   }
 
@@ -146,7 +146,7 @@ export function markAnswer(store, hostSocketId, payload) {
     const nextIndex = findNextPendingIndex(room.buzzQueue, room.activeBuzzIndex + 1)
 
     if (nextIndex === null) {
-      endRound(room)
+      closeRound(room)
     } else {
       room.activeBuzzIndex = nextIndex
     }
@@ -344,13 +344,9 @@ function serializeJoinInfo(room) {
   }
 }
 
-function endRound(room) {
+function closeRound(room) {
   room.roundOpen = false
   room.activeBuzzIndex = null
-  room.buzzQueue = []
-  for (const player of room.players) {
-    player.hasBuzzedInRound = false
-  }
 }
 
 function removePlayerFromRoom(room, playerId) {
@@ -367,7 +363,7 @@ function removePlayerFromRoom(room, playerId) {
   if (room.buzzQueue.length === 0) {
     room.activeBuzzIndex = room.roundOpen ? null : room.activeBuzzIndex
     if (room.roundOpen) {
-      endRound(room)
+      closeRound(room)
     }
     return
   }
@@ -383,7 +379,7 @@ function removePlayerFromRoom(room, playerId) {
   ) {
     const nextIndex = findNextPendingIndex(room.buzzQueue, room.activeBuzzIndex)
     if (nextIndex === null) {
-      endRound(room)
+      closeRound(room)
     } else {
       room.activeBuzzIndex = nextIndex
     }
