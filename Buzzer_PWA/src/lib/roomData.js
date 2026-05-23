@@ -143,6 +143,8 @@ export function buildRoomData(room) {
     roundOpen: typeof room.roundOpen === 'boolean' ? room.roundOpen : false,
     activeBuzzIndex:
       typeof room.activeBuzzIndex === 'number' ? room.activeBuzzIndex : null,
+    currentQuestionPoints:
+      typeof room.currentQuestionPoints === 'number' ? room.currentQuestionPoints : 1,
     teams,
     queue,
     players: Array.isArray(room.players) ? room.players : [],

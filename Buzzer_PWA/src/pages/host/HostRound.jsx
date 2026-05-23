@@ -107,6 +107,26 @@ function HostRound() {
     }
   }
 
+  async function updateQuestionPoints(nextPoints) {
+    if (!roomCode) {
+      return
+    }
+
+    setBusyAction('question-points')
+    setError('')
+
+    try {
+      const socket = getSocket()
+      await emitWithAck(socket, 'host:set-question-points', {
+        roomCode,
+        points: nextPoints,
+      })
+    } catch (socketError) {
+      setError(socketError.message || 'Impossible de changer les points.')
+    } finally {
+      setBusyAction('')
+    }
+  }
 
   async function leaveHostRoom(nextPath) {
     setBusyAction('leave-room')
@@ -216,6 +236,31 @@ function HostRound() {
         </section>
 
         {error ? <p className="host-round__error">{error}</p> : null}
+
+        <section className="host-round__points-control" aria-label="Points de la question">
+          <span className="host-round__points-label">POINTS DE LA QUESTION</span>
+          <div className="host-round__points-box">
+            <button
+              type="button"
+              className="host-round__points-step"
+              onClick={() => updateQuestionPoints(Math.max(1, (room.currentQuestionPoints || 1) - 1))}
+              disabled={Boolean(busyAction) || (room.currentQuestionPoints || 1) <= 1}
+              aria-label="Diminuer les points"
+            >
+              −
+            </button>
+            <strong className="host-round__points-value">{room.currentQuestionPoints || 1}</strong>
+            <button
+              type="button"
+              className="host-round__points-step"
+              onClick={() => updateQuestionPoints(Math.min(10, (room.currentQuestionPoints || 1) + 1))}
+              disabled={Boolean(busyAction) || (room.currentQuestionPoints || 1) >= 10}
+              aria-label="Augmenter les points"
+            >
+              +
+            </button>
+          </div>
+        </section>
 
         <div className="host-round__footer">
           <button
