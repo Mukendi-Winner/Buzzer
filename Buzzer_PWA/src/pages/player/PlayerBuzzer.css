@@ -170,6 +170,30 @@
   color: #9b95a2;
 }
 
+.player-buzzer__notice {
+  margin: -18px 0 0;
+  min-height: 18px;
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.player-buzzer__notice--success {
+  color: #7b4b85;
+}
+
+.player-buzzer__notice--warning {
+  color: #a78822;
+}
+
+.player-buzzer__notice--error {
+  color: #a54969;
+}
+
+.player-buzzer__notice--info {
+  color: #6d6780;
+}
+
 .player-buzzer__rename-trigger {
   border: 0;
   background: transparent;

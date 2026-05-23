@@ -6,9 +6,9 @@ const defaultTeams = [
     score: 20,
     accent: 'purple',
     players: [
-      { id: 'js', name: 'Jean-Sébastien' },
-      { id: 'ml', name: 'Marie-Louise' },
-      { id: 'ad', name: 'Arthur D.' },
+      { id: 'js', name: 'Jean-Sébastien', connected: true },
+      { id: 'ml', name: 'Marie-Louise', connected: true },
+      { id: 'ad', name: 'Arthur D.', connected: true },
     ],
   },
   {
@@ -18,8 +18,8 @@ const defaultTeams = [
     score: 30,
     accent: 'gold',
     players: [
-      { id: 'cl', name: 'Claire L.' },
-      { id: 'ph', name: 'Pierre-Henri' },
+      { id: 'cl', name: 'Claire L.', connected: true },
+      { id: 'ph', name: 'Pierre-Henri', connected: true },
     ],
   },
 ]
@@ -100,6 +100,8 @@ export function buildRoomData(room) {
                 player.id ||
                 `${incomingTeam.id || defaultTeam.id}-${playerIndex}`,
               name: player.name || player.nickname || `Joueur ${playerIndex + 1}`,
+              connected:
+                typeof player.connected === 'boolean' ? player.connected : true,
             }))
           : hasLivePlayers
             ? []

@@ -43,6 +43,10 @@ function PlayerBuzzer() {
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [draftNickname, setDraftNickname] = useState(initialNickname)
+  const [playerNotice, setPlayerNotice] = useState({
+    tone: savedPlayerSession?.playerId ? 'warning' : 'success',
+    text: savedPlayerSession?.playerId ? 'Reconnexion en cours...' : 'Connecté à la partie.',
+  })
   const roomCode = liveRoom.gameCode || savedPlayerSession?.roomCode
   const playerId = location.state?.playerId || savedPlayerSession?.playerId || null
 
@@ -128,10 +132,12 @@ function PlayerBuzzer() {
           nickname: response.player.nickname,
         })
         setError('')
+        setPlayerNotice({ tone: 'success', text: 'Connecté à la partie.' })
       } catch (socketError) {
         skipRouteLeaveDisconnectRef.current = true
         clearPlayerSession()
         setError(socketError.message || 'Session introuvable.')
+        setPlayerNotice({ tone: 'error', text: 'Session introuvable.' })
         navigate('/player/join')
       } finally {
         resumeAttemptRef.current = false
@@ -145,15 +151,29 @@ function PlayerBuzzer() {
         rank: payload.rank,
         connectionStatus: payload.connected ? 'connected' : currentState.connectionStatus,
       }))
+
+      if (payload.connected) {
+        setPlayerNotice((currentNotice) =>
+          currentNotice.tone === 'warning'
+            ? { tone: 'success', text: 'Connecté à la partie.' }
+            : currentNotice,
+        )
+      }
     }
 
     function handleRoomState(payload) {
-      setLiveRoom(buildRoomData(payload.room))
+      const nextRoom = buildRoomData(payload.room)
+      setLiveRoom(nextRoom)
+
+      if (nextRoom.roundOpen && !payload.room?.buzzQueue?.length && !payload.room?.queue?.length) {
+        setPlayerNotice({ tone: 'success', text: 'Connecté à la partie.' })
+      }
     }
 
     function handleRoomClosed() {
       skipRouteLeaveDisconnectRef.current = true
       setError('La partie a ete fermee.')
+      setPlayerNotice({ tone: 'error', text: 'La partie a été fermée.' })
       clearPlayerSession()
       navigate('/')
     }
@@ -167,6 +187,7 @@ function PlayerBuzzer() {
         ...currentState,
         connectionStatus: 'reconnecting',
       }))
+      setPlayerNotice({ tone: 'warning', text: 'Reconnexion en cours...' })
     }
 
     socket.on('player:buzz-status', handleBuzzStatus)
@@ -194,12 +215,16 @@ function PlayerBuzzer() {
     }
 
     setError('')
+    setPlayerNotice({ tone: 'info', text: 'Envoi du buzz...' })
 
     try {
       const socket = getSocket()
       await emitWithAck(socket, 'player:buzz', { roomCode })
+      setPlayerNotice({ tone: 'success', text: 'Buzz envoyé.' })
     } catch (socketError) {
-      setError(socketError.message || 'Impossible d envoyer le buzz.')
+      const message = socketError.message || 'Impossible d envoyer le buzz.'
+      setError(message)
+      setPlayerNotice({ tone: 'error', text: `Buzz refusé : ${message}` })
     }
   }
 
@@ -216,6 +241,7 @@ function PlayerBuzzer() {
     }
 
     clearPlayerSession()
+    setPlayerNotice({ tone: 'warning', text: 'Déconnecté de la partie.' })
     setPlayerState((currentState) => ({
       ...currentState,
       connectionStatus: 'disconnected',
@@ -231,12 +257,14 @@ function PlayerBuzzer() {
     }
 
     setError('')
+    setPlayerNotice({ tone: 'info', text: 'Mise à jour du prénom...' })
 
     try {
+      const trimmedNickname = draftNickname.trim()
       const socket = getSocket()
       const response = await emitWithAck(socket, 'player:update-nickname', {
         roomCode,
-        nickname: draftNickname.trim(),
+        nickname: trimmedNickname,
       })
 
       setLiveRoom(buildRoomData(response.room))
@@ -249,8 +277,11 @@ function PlayerBuzzer() {
       setCurrentNickname(response.player.nickname)
       setEditingName(false)
       setDraftNickname(response.player.nickname)
+      setPlayerNotice({ tone: 'success', text: 'Prénom mis à jour.' })
     } catch (socketError) {
-      setError(socketError.message || 'Impossible de changer le prenom.')
+      const message = socketError.message || 'Impossible de changer le prenom.'
+      setError(message)
+      setPlayerNotice({ tone: 'error', text: message })
     }
   }
 
@@ -305,6 +336,10 @@ function PlayerBuzzer() {
 
         <p className="player-buzzer__team-name">
           {currentNickname} • {selectedTeam?.name || 'Équipe sélectionnée'}
+        </p>
+
+        <p className={`player-buzzer__notice player-buzzer__notice--${playerNotice.tone}`}>
+          {playerNotice.text}
         </p>
 
         {editingName ? (

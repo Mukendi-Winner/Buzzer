@@ -24,6 +24,25 @@
   align-content: start;
 }
 
+.host-round__top-actions {
+  display: flex;
+  justify-content: center;
+  margin: 0 14px 18px;
+}
+
+.host-round__players-status-trigger {
+  height: 34px;
+  padding: 0 16px;
+  border: 1px solid rgba(138, 79, 143, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #7a547f;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
 .host-round__code-card {
   width: min(100%, 196px);
   margin: 0 auto 22px;
@@ -406,6 +425,17 @@
     padding-inline: 0;
   }
 
+  .host-round__top-actions {
+    justify-content: flex-end;
+    margin: -8px 0 26px;
+  }
+
+  .host-round__players-status-trigger {
+    height: 30px;
+    padding: 0 14px;
+    font-size: 10px;
+  }
+
   .host-round__scoreboard {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px 48px;
@@ -561,4 +591,174 @@
     height: 42px;
     font-size: 11px;
   }
+
+  .host-round__players-modal-card {
+    width: min(100%, 760px);
+    padding: 24px;
+  }
+
+  .host-round__players-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+.host-round__players-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.host-round__players-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(52, 33, 58, 0.34);
+}
+
+.host-round__players-modal-card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 680px);
+  max-height: min(88svh, 760px);
+  overflow: auto;
+  border-radius: 28px;
+  background: #fcf8fc;
+  box-shadow: 0 24px 60px rgba(75, 48, 84, 0.24);
+  padding: 20px;
+}
+
+.host-round__players-modal-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.host-round__players-modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #4a4653;
+}
+
+.host-round__players-modal-header p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #91879a;
+}
+
+.host-round__players-modal-close {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(138, 79, 143, 0.24);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #7d5a82;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.host-round__players-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.host-round__players-group {
+  border-radius: 22px;
+  background: rgba(247, 241, 249, 0.9);
+  padding: 16px;
+}
+
+.host-round__players-group-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.host-round__players-group-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #4a4653;
+}
+
+.host-round__players-group-header span {
+  font-size: 12px;
+  color: #9e92a6;
+}
+
+.host-round__players-list {
+  display: grid;
+  gap: 10px;
+}
+
+.host-round__player-status-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 10px 12px;
+}
+
+.host-round__player-status-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(240, 210, 245, 0.7);
+  color: #9a6da3;
+  font-size: 12px;
+  font-weight: 800;
+  flex: none;
+}
+
+.host-round__player-status-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.host-round__player-status-main strong {
+  min-width: 0;
+  font-size: 14px;
+  color: #504b59;
+}
+
+.host-round__player-status-pill {
+  flex: none;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.host-round__player-status-pill--connected {
+  background: rgba(152, 214, 167, 0.18);
+  color: #3e8652;
+}
+
+.host-round__player-status-pill--disconnected {
+  background: rgba(227, 190, 196, 0.22);
+  color: #9f5a6f;
+}
+
+.host-round__players-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #9e92a6;
 }

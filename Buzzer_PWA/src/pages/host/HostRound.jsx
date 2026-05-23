@@ -4,7 +4,7 @@ import './HostRound.css'
 import buzzSound from '../../assets/Ding.mp3'
 import AppLogo from '../../components/AppLogo.jsx'
 import ConfirmationModal from '../../components/ConfirmationModal.jsx'
-import { buildRoomData } from '../../lib/roomData.js'
+import { buildRoomData, getPlayerBadge } from '../../lib/roomData.js'
 import { emitWithAck } from '../../lib/socketRequest.js'
 import { clearHostSession, readHostSession } from '../../lib/session.js'
 import { getSocket } from '../../lib/socket.js'
@@ -16,6 +16,7 @@ function HostRound() {
   const [error, setError] = useState('')
   const [busyAction, setBusyAction] = useState('')
   const [confirmAction, setConfirmAction] = useState(null)
+  const [showPlayersStatus, setShowPlayersStatus] = useState(false)
   const openedRoundRef = useRef(false)
 
   const activeEntry =
@@ -190,6 +191,16 @@ function HostRound() {
           <strong>{room.gameCode}</strong>
         </section>
 
+        <div className="host-round__top-actions">
+          <button
+            type="button"
+            className="host-round__players-status-trigger"
+            onClick={() => setShowPlayersStatus(true)}
+          >
+            ÉTAT DES JOUEURS
+          </button>
+        </div>
+
         <section className="host-round__scoreboard" aria-label="Points des équipes">
           {room.teams.map((team) => (
             <article
@@ -328,6 +339,70 @@ function HostRound() {
           </button>
         </div>
       </div>
+
+      {showPlayersStatus ? (
+        <div className="host-round__players-modal" role="dialog" aria-modal="true" aria-labelledby="players-status-title">
+          <button
+            type="button"
+            className="host-round__players-modal-backdrop"
+            aria-label="Fermer l'état des joueurs"
+            onClick={() => setShowPlayersStatus(false)}
+          />
+
+          <section className="host-round__players-modal-card">
+            <div className="host-round__players-modal-header">
+              <div>
+                <h2 id="players-status-title">État des joueurs</h2>
+                <p>Connexion des joueurs par équipe</p>
+              </div>
+              <button
+                type="button"
+                className="host-round__players-modal-close"
+                onClick={() => setShowPlayersStatus(false)}
+              >
+                Fermer
+              </button>
+            </div>
+
+            <div className="host-round__players-groups">
+              {room.teams.map((team) => (
+                <section key={team.id} className="host-round__players-group">
+                  <div className="host-round__players-group-header">
+                    <h3>{team.name}</h3>
+                    <span>{team.players.length} joueur{team.players.length > 1 ? 's' : ''}</span>
+                  </div>
+
+                  <div className="host-round__players-list">
+                    {team.players.length > 0 ? (
+                      team.players.map((player) => (
+                        <article key={player.id} className="host-round__player-status-item">
+                          <span className="host-round__player-status-badge">
+                            {getPlayerBadge(player.name)}
+                          </span>
+                          <div className="host-round__player-status-main">
+                            <strong>{player.name}</strong>
+                            <span
+                              className={`host-round__player-status-pill ${
+                                player.connected
+                                  ? 'host-round__player-status-pill--connected'
+                                  : 'host-round__player-status-pill--disconnected'
+                              }`}
+                            >
+                              {player.connected ? 'Connecté' : 'Déconnecté'}
+                            </span>
+                          </div>
+                        </article>
+                      ))
+                    ) : (
+                      <p className="host-round__players-empty">Aucun joueur dans cette équipe.</p>
+                    )}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       <ConfirmationModal
         open={Boolean(confirmAction)}
