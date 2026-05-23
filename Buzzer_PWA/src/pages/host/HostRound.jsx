@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import './HostRound.css'
 import buzzSound from '../../assets/Ding.mp3'
 import AppLogo from '../../components/AppLogo.jsx'
+import ConfirmationModal from '../../components/ConfirmationModal.jsx'
 import { buildRoomData } from '../../lib/roomData.js'
 import { emitWithAck } from '../../lib/socketRequest.js'
 import { clearHostSession, readHostSession } from '../../lib/session.js'
@@ -14,6 +15,7 @@ function HostRound() {
   const [room, setRoom] = useState(() => buildRoomData(location.state?.room))
   const [error, setError] = useState('')
   const [busyAction, setBusyAction] = useState('')
+  const [confirmAction, setConfirmAction] = useState(null)
   const openedRoundRef = useRef(false)
 
   const activeEntry =
@@ -145,6 +147,35 @@ function HostRound() {
 
     clearHostSession()
     navigate(nextPath)
+  }
+
+  function requestHostAction(type) {
+    if (type === 'new-game') {
+      setConfirmAction({
+        type,
+        title: 'Créer une nouvelle partie ?',
+        message: 'Voulez-vous vraiment fermer cette partie et revenir à la configuration pour en créer une nouvelle ?',
+        confirmLabel: 'Oui',
+      })
+      return
+    }
+
+    setConfirmAction({
+      type,
+      title: 'Se déconnecter ?',
+      message: 'Voulez-vous vraiment fermer cette partie et vous déconnecter ?',
+      confirmLabel: 'Oui',
+    })
+  }
+
+  async function confirmHostAction() {
+    if (!confirmAction) {
+      return
+    }
+
+    const nextPath = confirmAction.type === 'new-game' ? '/configuration' : '/'
+    setConfirmAction(null)
+    await leaveHostRoom(nextPath)
   }
 
   return (
@@ -282,7 +313,7 @@ function HostRound() {
           <button
             type="button"
             className="host-round__secondary-button host-round__secondary-button--primary"
-            onClick={() => leaveHostRoom('/configuration')}
+            onClick={() => requestHostAction('new-game')}
             disabled={Boolean(busyAction)}
           >
             CRÉER UNE NOUVELLE PARTIE
@@ -290,13 +321,23 @@ function HostRound() {
           <button
             type="button"
             className="host-round__secondary-button host-round__secondary-button--ghost"
-            onClick={() => leaveHostRoom('/')}
+            onClick={() => requestHostAction('disconnect')}
             disabled={Boolean(busyAction)}
           >
             SE DÉCONNECTER
           </button>
         </div>
       </div>
+
+      <ConfirmationModal
+        open={Boolean(confirmAction)}
+        title={confirmAction?.title}
+        message={confirmAction?.message}
+        confirmLabel={confirmAction?.confirmLabel}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={confirmHostAction}
+        busy={busyAction === 'leave-room'}
+      />
     </main>
   )
 }

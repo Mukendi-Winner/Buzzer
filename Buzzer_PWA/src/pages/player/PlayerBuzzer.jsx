@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import './PlayerBuzzer.css'
 import AppLogo from '../../components/AppLogo.jsx'
+import ConfirmationModal from '../../components/ConfirmationModal.jsx'
 import { buildRoomData, demoRoom } from '../../lib/roomData.js'
 import { emitWithAck } from '../../lib/socketRequest.js'
 import {
@@ -38,6 +39,7 @@ function PlayerBuzzer() {
   const selectedTeam =
     liveRoom.teams.find((team) => team.id === selectedTeamId) || liveRoom.teams[0]
   const [error, setError] = useState('')
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
   const roomCode = liveRoom.gameCode || savedPlayerSession?.roomCode
   const playerId = location.state?.playerId || savedPlayerSession?.playerId || null
 
@@ -270,10 +272,23 @@ function PlayerBuzzer() {
       <button
         type="button"
         className="player-buzzer__disconnect"
-        onClick={handleDisconnect}
+        onClick={() => setShowDisconnectConfirm(true)}
       >
         Se deconnecter
       </button>
+
+      <ConfirmationModal
+        open={showDisconnectConfirm}
+        title="Se déconnecter ?"
+        message="Voulez-vous vraiment quitter la partie ?"
+        confirmLabel="Oui"
+        onCancel={() => setShowDisconnectConfirm(false)}
+        onConfirm={async () => {
+          setShowDisconnectConfirm(false)
+          await handleDisconnect()
+        }}
+        busy={false}
+      />
     </main>
   )
 }
