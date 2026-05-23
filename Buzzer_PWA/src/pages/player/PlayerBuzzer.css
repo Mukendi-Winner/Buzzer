@@ -67,6 +67,38 @@
   font-weight: 700;
 }
 
+.player-buzzer__scores {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.player-buzzer__score-card {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: rgba(248, 243, 249, 0.96);
+  display: grid;
+  gap: 6px;
+}
+
+.player-buzzer__score-card--selected {
+  box-shadow: 0 0 0 2px rgba(154, 63, 152, 0.18);
+}
+
+.player-buzzer__score-team {
+  font-size: 11px;
+  line-height: 1.2;
+  color: #8a8292;
+}
+
+.player-buzzer__score-value {
+  font-size: 24px;
+  line-height: 1;
+  color: #4a4653;
+}
+
 .player-buzzer__body {
   flex: 1;
   display: flex;

@@ -249,7 +249,10 @@ function HostRound() {
             >
               −
             </button>
-            <strong className="host-round__points-value">{room.currentQuestionPoints || 1}</strong>
+            <div className="host-round__points-readout">
+              <strong className="host-round__points-value">{room.currentQuestionPoints || 1}</strong>
+              <span className="host-round__points-unit">PTS</span>
+            </div>
             <button
               type="button"
               className="host-round__points-step"

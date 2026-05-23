@@ -268,12 +268,26 @@
   cursor: not-allowed;
 }
 
+.host-round__points-readout {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
 .host-round__points-value {
   min-width: 22px;
   text-align: center;
   font-size: 24px;
   line-height: 1;
   color: #3d3945;
+}
+
+.host-round__points-unit {
+  font-size: 11px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #8f8a97;
 }
 
 .host-round__footer {
@@ -514,6 +528,10 @@
 
   .host-round__points-value {
     font-size: 22px;
+  }
+
+  .host-round__points-unit {
+    font-size: 10px;
   }
 
   .host-round__footer {

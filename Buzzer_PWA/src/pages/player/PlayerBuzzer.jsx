@@ -228,6 +228,22 @@ function PlayerBuzzer() {
         </section>
       </header>
 
+      <section className="player-buzzer__scores" aria-label="Scores des équipes">
+        {liveRoom.teams.slice(0, 2).map((team) => {
+          const isSelected = team.id === selectedTeamId
+
+          return (
+            <article
+              key={team.id}
+              className={`player-buzzer__score-card ${isSelected ? 'player-buzzer__score-card--selected' : ''}`}
+            >
+              <span className="player-buzzer__score-team">{team.name}</span>
+              <strong className="player-buzzer__score-value">{team.score}</strong>
+            </article>
+          )
+        })}
+      </section>
+
       <section className="player-buzzer__body" aria-labelledby="player-rank">
         <p id="player-rank" className="player-buzzer__rank">
           Vous êtes le <span>#{playerState.rank ?? '--'}</span>
