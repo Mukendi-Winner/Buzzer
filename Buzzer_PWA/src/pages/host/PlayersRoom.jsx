@@ -5,6 +5,7 @@ import AppLogo from '../../components/AppLogo.jsx'
 import { buildRoomData, getPlayerBadge } from '../../lib/roomData.js'
 import { readHostSession, writeHostSession } from '../../lib/session.js'
 import { getSocket } from '../../lib/socket.js'
+import { emitWithAck } from '../../lib/socketRequest.js'
 
 function PlayersRoom() {
   const navigate = useNavigate()
@@ -24,6 +25,30 @@ function PlayersRoom() {
       })
     }
 
+    async function resumeHostSession() {
+      const hostSession = readHostSession()
+      if (!hostSession?.roomCode || !hostSession?.hostSessionToken) {
+        return
+      }
+
+      try {
+        const response = await emitWithAck(socket, 'host:resume-session', {
+          roomCode: hostSession.roomCode,
+          hostSessionToken: hostSession.hostSessionToken,
+        })
+        setRoom(buildRoomData(response.room))
+        writeHostSession({
+          ...hostSession,
+          roomCode: response.room.code || response.room.gameCode,
+          hostSessionToken: response.hostSessionToken || hostSession.hostSessionToken,
+          role: 'host',
+        })
+        setError('')
+      } catch (socketError) {
+        setError(socketError.message || 'Impossible de reprendre la partie.')
+      }
+    }
+
     function handleRoomClosed(payload) {
       setError(
         payload?.reason === 'host_disconnected'
@@ -34,10 +59,16 @@ function PlayersRoom() {
 
     socket.on('room:state', handleRoomState)
     socket.on('room:closed', handleRoomClosed)
+    socket.on('connect', resumeHostSession)
+
+    if (socket.connected) {
+      resumeHostSession()
+    }
 
     return () => {
       socket.off('room:state', handleRoomState)
       socket.off('room:closed', handleRoomClosed)
+      socket.off('connect', resumeHostSession)
     }
   }, [])
 

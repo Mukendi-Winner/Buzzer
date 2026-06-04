@@ -31,6 +31,7 @@ function Configuration() {
       writeHostSession({
         ...(readHostSession() || {}),
         roomCode: room.code,
+        hostSessionToken: response.hostSessionToken,
         role: 'host',
       })
 

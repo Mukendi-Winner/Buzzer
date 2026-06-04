@@ -6,7 +6,7 @@ import AppLogo from '../../components/AppLogo.jsx'
 import ConfirmationModal from '../../components/ConfirmationModal.jsx'
 import { buildRoomData, getPlayerBadge } from '../../lib/roomData.js'
 import { emitWithAck } from '../../lib/socketRequest.js'
-import { clearHostSession, readHostSession } from '../../lib/session.js'
+import { clearHostSession, readHostSession, writeHostSession } from '../../lib/session.js'
 import { getSocket } from '../../lib/socket.js'
 
 function HostRound() {
@@ -19,12 +19,15 @@ function HostRound() {
   const [showPlayersStatus, setShowPlayersStatus] = useState(false)
   const [questionPointsInput, setQuestionPointsInput] = useState(String((room.currentQuestionPoints || 1)))
   const openedRoundRef = useRef(false)
+  const shouldAutoOpenRoundRef = useRef(Boolean(location.state?.room))
   const pointsSyncTimeoutRef = useRef(null)
   const pointsInputFocusedRef = useRef(false)
 
   const activeEntry =
     room.queue.find((entry) => entry.isActive || entry.status === 'pending') || null
-  const roomCode = room.gameCode || readHostSession()?.roomCode
+  const hostSession = readHostSession()
+  const roomCode =
+    location.state?.room?.code || location.state?.room?.gameCode || hostSession?.roomCode || room.gameCode
   const canResetQueue = room.queue.length > 0 || !room.roundOpen
 
   useEffect(() => {
@@ -34,8 +37,42 @@ function HostRound() {
       const nextRoom = buildRoomData(payload.room)
       setRoom(nextRoom)
 
+      writeHostSession({
+        ...(readHostSession() || {}),
+        roomCode: payload.room.code || payload.room.gameCode,
+        role: 'host',
+      })
+
       if (!pointsInputFocusedRef.current) {
         setQuestionPointsInput(String(nextRoom.currentQuestionPoints || 1))
+      }
+    }
+
+    async function resumeHostSession() {
+      const hostSession = readHostSession()
+      if (!hostSession?.roomCode || !hostSession?.hostSessionToken) {
+        return
+      }
+
+      try {
+        const response = await emitWithAck(socket, 'host:resume-session', {
+          roomCode: hostSession.roomCode,
+          hostSessionToken: hostSession.hostSessionToken,
+        })
+        const nextRoom = buildRoomData(response.room)
+        setRoom(nextRoom)
+        writeHostSession({
+          ...hostSession,
+          roomCode: response.room.code || response.room.gameCode,
+          hostSessionToken: response.hostSessionToken || hostSession.hostSessionToken,
+          role: 'host',
+        })
+        if (!pointsInputFocusedRef.current) {
+          setQuestionPointsInput(String(nextRoom.currentQuestionPoints || 1))
+        }
+        setError('')
+      } catch (socketError) {
+        setError(socketError.message || 'Impossible de reprendre la partie.')
       }
     }
 
@@ -50,11 +87,17 @@ function HostRound() {
     socket.on('room:state', handleRoomState)
     socket.on('host:buzz-sound', handleBuzzSound)
     socket.on('room:closed', handleRoomClosed)
+    socket.on('connect', resumeHostSession)
+
+    if (socket.connected) {
+      resumeHostSession()
+    }
 
     return () => {
       socket.off('room:state', handleRoomState)
       socket.off('host:buzz-sound', handleBuzzSound)
       socket.off('room:closed', handleRoomClosed)
+      socket.off('connect', resumeHostSession)
     }
   }, [])
 
@@ -65,7 +108,7 @@ function HostRound() {
   }, [])
 
   useEffect(() => {
-    if (!roomCode || openedRoundRef.current) {
+    if (!roomCode || openedRoundRef.current || !shouldAutoOpenRoundRef.current) {
       return
     }
 
