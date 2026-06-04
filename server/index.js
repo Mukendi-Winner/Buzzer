@@ -2,12 +2,14 @@ import { createServer } from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { Server } from 'socket.io'
 import {
+  HOST_RECONNECT_WINDOW_MS,
   PLAYER_RECONNECT_WINDOW_MS,
   SocketEventError,
   addBuzz,
   checkRoom,
   createRoom,
   createStore,
+  expireDisconnectedHost,
   expireDisconnectedPlayer,
   getPlayerBuzzStatus,
   joinRoom,
@@ -17,6 +19,7 @@ import {
   removePlayerByRequest,
   removeSocket,
   setQuestionPoints,
+  resumeHostSession,
   resumePlayerSession,
   updatePlayerNickname,
   serializeRoom,
@@ -48,6 +51,7 @@ export function createSocketServer(options = {}) {
 
   const store = createStore()
   const playerExpiryTimers = new Map()
+  const hostExpiryTimers = new Map()
 
   io.on('connection', (socket) => {
     socket.on('host:create-room', (payload, callback) => {
@@ -58,7 +62,24 @@ export function createSocketServer(options = {}) {
         const serializedRoom = serializeRoom(room)
         socket.emit('host:room-created', { room: serializedRoom })
         emitRoomState(room)
-        return { room: serializedRoom }
+        return {
+          room: serializedRoom,
+          hostSessionToken: room.hostSessionToken,
+        }
+      })
+    })
+
+    socket.on('host:resume-session', (payload, callback) => {
+      handleEvent(socket, callback, () => {
+        const { room } = resumeHostSession(store, socket.id, payload)
+        socket.join(room.code)
+        clearHostExpiry(room.code)
+        emitRoomState(room)
+        emitPlayerStatuses(room)
+        return {
+          room: serializeRoom(room),
+          hostSessionToken: room.hostSessionToken,
+        }
       })
     })
 
@@ -140,7 +161,9 @@ export function createSocketServer(options = {}) {
         const { room, player } = addBuzz(store, socket.id, payload)
         emitRoomState(room)
         emitPlayerStatuses(room)
-        io.to(room.hostSocketId).emit('host:buzz-sound', { roomCode: room.code })
+        if (room.hostSocketId) {
+          io.to(room.hostSocketId).emit('host:buzz-sound', { roomCode: room.code })
+        }
         return {
           room: serializeRoom(room),
           playerStatus: getPlayerBuzzStatus(room, player.id),
@@ -180,6 +203,7 @@ export function createSocketServer(options = {}) {
     socket.on('host:disconnect-room', (payload, callback) => {
       handleEvent(socket, callback, () => {
         const { room, roomCode } = removeHostByRequest(store, socket.id, payload)
+        clearHostExpiry(roomCode)
         socket.leave(roomCode)
         io.to(roomCode).emit('room:closed', {
           roomCode,
@@ -195,11 +219,10 @@ export function createSocketServer(options = {}) {
         return
       }
 
-      if (result.type === 'host') {
-        io.to(result.roomCode).emit('room:closed', {
-          roomCode: result.roomCode,
-          reason: 'host_disconnected',
-        })
+      if (result.type === 'host-disconnected') {
+        scheduleHostExpiry(result.roomCode, result.expiresAt)
+        emitRoomState(result.room)
+        emitPlayerStatuses(result.room)
         return
       }
 
@@ -223,6 +246,34 @@ export function createSocketServer(options = {}) {
         continue
       }
       io.to(player.socketId).emit('player:buzz-status', getPlayerBuzzStatus(room, player.id))
+    }
+  }
+
+  function scheduleHostExpiry(roomCode, expiresAt) {
+    clearHostExpiry(roomCode)
+
+    const delay = Math.max(0, (expiresAt || Date.now() + HOST_RECONNECT_WINDOW_MS) - Date.now())
+    const timeoutId = setTimeout(() => {
+      hostExpiryTimers.delete(roomCode)
+      const result = expireDisconnectedHost(store, roomCode)
+      if (!result.removed) {
+        return
+      }
+
+      io.to(result.roomCode).emit('room:closed', {
+        roomCode: result.roomCode,
+        reason: 'host_disconnected',
+      })
+    }, delay)
+
+    hostExpiryTimers.set(roomCode, timeoutId)
+  }
+
+  function clearHostExpiry(roomCode) {
+    const timeoutId = hostExpiryTimers.get(roomCode)
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      hostExpiryTimers.delete(roomCode)
     }
   }
 

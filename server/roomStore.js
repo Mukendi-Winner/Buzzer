@@ -4,6 +4,7 @@ const MAX_ROUND_POINTS = 10
 const ROOM_CODE_LENGTH = 6
 const ROOM_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 export const PLAYER_RECONNECT_WINDOW_MS = 10 * 60 * 1000
+export const HOST_RECONNECT_WINDOW_MS = 10 * 60 * 1000
 
 export class SocketEventError extends Error {
   constructor(code, message) {
@@ -27,6 +28,9 @@ export function createRoom(store, hostSocketId, payload) {
   const room = {
     code,
     hostSocketId,
+    hostSessionToken: `host-${crypto.randomUUID()}`,
+    hostDisconnectedAt: null,
+    hostDisconnectDeadlineAt: null,
     createdAt: Date.now(),
     roundOpen: false,
     activeBuzzIndex: null,
@@ -110,6 +114,26 @@ export function resumePlayerSession(store, socketId, payload) {
   })
 
   return { room, player }
+}
+
+export function resumeHostSession(store, socketId, payload) {
+  const room = getRoomOrThrow(store, payload?.roomCode)
+  const hostSessionToken = String(payload?.hostSessionToken || '').trim()
+
+  if (!hostSessionToken || hostSessionToken !== room.hostSessionToken) {
+    throw new SocketEventError('INVALID_HOST_SESSION', 'Host session is invalid.')
+  }
+
+  room.hostSocketId = socketId
+  room.hostDisconnectedAt = null
+  room.hostDisconnectDeadlineAt = null
+
+  store.socketToPresence.set(socketId, {
+    roomCode: room.code,
+    role: 'host',
+  })
+
+  return { room }
 }
 
 export function openRound(store, hostSocketId, payload) {
@@ -241,12 +265,20 @@ export function removeSocket(store, socketId) {
   }
 
   if (presence.role === 'host') {
-    store.rooms.delete(room.code)
+    if (room.hostSocketId !== socketId) {
+      return { removed: false }
+    }
+
+    room.hostSocketId = null
+    room.hostDisconnectedAt = Date.now()
+    room.hostDisconnectDeadlineAt = Date.now() + HOST_RECONNECT_WINDOW_MS
+
     return {
       removed: true,
-      type: 'host',
+      type: 'host-disconnected',
       roomCode: room.code,
       room,
+      expiresAt: room.hostDisconnectDeadlineAt,
     }
   }
 
@@ -272,6 +304,29 @@ export function removeSocket(store, socketId) {
   }
 
   return { removed: false }
+}
+
+export function expireDisconnectedHost(store, roomCode) {
+  const room = store.rooms.get(String(roomCode || '').trim().toUpperCase())
+  if (!room) {
+    return { removed: false }
+  }
+
+  if (room.hostSocketId || !room.hostDisconnectDeadlineAt) {
+    return { removed: false, room }
+  }
+
+  if (Date.now() < room.hostDisconnectDeadlineAt) {
+    return { removed: false, room }
+  }
+
+  store.rooms.delete(room.code)
+  return {
+    removed: true,
+    type: 'host-expired',
+    roomCode: room.code,
+    room,
+  }
 }
 
 export function expireDisconnectedPlayer(store, roomCode, playerId) {
