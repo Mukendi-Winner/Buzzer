@@ -88,6 +88,27 @@
   padding: 16px 22px;
 }
 
+.host-round__score-card-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.host-round__score-edit {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(138, 79, 143, 0.22);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.78);
+  color: #8a4f8f;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
 .host-round__score-card::before {
   content: '';
   position: absolute;
@@ -125,6 +146,20 @@
   line-height: 1;
   font-weight: 800;
   color: #17151d;
+}
+
+.host-round__score-input {
+  width: 70px;
+  border: 0;
+  border-bottom: 2px solid rgba(138, 79, 143, 0.3);
+  background: transparent;
+  padding: 0 2px 2px;
+  font: inherit;
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 800;
+  color: #17151d;
+  outline: none;
 }
 
 .host-round__score-value span {
@@ -483,6 +518,11 @@
   }
 
   .host-round__score-value strong {
+    font-size: 44px;
+  }
+
+  .host-round__score-input {
+    width: 92px;
     font-size: 44px;
   }
 

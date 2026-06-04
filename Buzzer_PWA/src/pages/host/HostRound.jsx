@@ -18,10 +18,13 @@ function HostRound() {
   const [confirmAction, setConfirmAction] = useState(null)
   const [showPlayersStatus, setShowPlayersStatus] = useState(false)
   const [questionPointsInput, setQuestionPointsInput] = useState(String((room.currentQuestionPoints || 1)))
+  const [editingScoreTeamId, setEditingScoreTeamId] = useState(null)
+  const [scoreDraft, setScoreDraft] = useState('')
   const openedRoundRef = useRef(false)
   const shouldAutoOpenRoundRef = useRef(Boolean(location.state?.room))
   const pointsSyncTimeoutRef = useRef(null)
   const pointsInputFocusedRef = useRef(false)
+  const skipNextScoreCommitRef = useRef(false)
 
   const activeEntry =
     room.queue.find((entry) => entry.isActive || entry.status === 'pending') || null
@@ -219,6 +222,38 @@ function HostRound() {
     scheduleQuestionPointsSync(nextPoints, 0)
   }
 
+  function startScoreEdit(team) {
+    setEditingScoreTeamId(team.id)
+    setScoreDraft(String(team.score || 0))
+  }
+
+  async function commitScoreEdit(teamId, rawScore = scoreDraft) {
+    if (!roomCode || !teamId) {
+      return
+    }
+
+    const nextScore = normalizeTeamScoreValue(rawScore)
+    setEditingScoreTeamId(null)
+    setScoreDraft('')
+    setError('')
+
+    try {
+      const socket = getSocket()
+      await emitWithAck(socket, 'host:set-team-score', {
+        roomCode,
+        teamId,
+        score: nextScore,
+      })
+    } catch (socketError) {
+      setError(socketError.message || 'Impossible de modifier les points de l équipe.')
+    }
+  }
+
+  function cancelScoreEdit() {
+    setEditingScoreTeamId(null)
+    setScoreDraft('')
+  }
+
   async function leaveHostRoom(nextPath) {
     setBusyAction('leave-room')
     setError('')
@@ -290,18 +325,64 @@ function HostRound() {
         </div>
 
         <section className="host-round__scoreboard" aria-label="Points des équipes">
-          {room.teams.map((team) => (
-            <article
-              key={team.id}
-              className={`host-round__score-card host-round__score-card--${team.accent}`}
-            >
-              <p className="host-round__team-label">{team.name}</p>
-              <div className="host-round__score-value">
-                <strong>{team.score}</strong>
-                <span>PTS</span>
-              </div>
-            </article>
-          ))}
+          {room.teams.map((team) => {
+            const isEditingScore = editingScoreTeamId === team.id
+
+            return (
+              <article
+                key={team.id}
+                className={`host-round__score-card host-round__score-card--${team.accent}`}
+              >
+                <div className="host-round__score-card-top">
+                  <p className="host-round__team-label">{team.name}</p>
+                  <button
+                    type="button"
+                    className="host-round__score-edit"
+                    onClick={() => (isEditingScore ? cancelScoreEdit() : startScoreEdit(team))}
+                    aria-label={`Modifier les points de ${team.name}`}
+                    title={`Modifier les points de ${team.name}`}
+                  >
+                    ✎
+                  </button>
+                </div>
+
+                <div className="host-round__score-value">
+                  {isEditingScore ? (
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className="host-round__score-input"
+                      value={scoreDraft}
+                      onChange={(event) => {
+                        setScoreDraft(event.target.value.replace(/[^0-9]/g, '').slice(0, 3))
+                      }}
+                      onBlur={() => {
+                        if (skipNextScoreCommitRef.current) {
+                          skipNextScoreCommitRef.current = false
+                          return
+                        }
+                        commitScoreEdit(team.id)
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.currentTarget.blur()
+                        }
+                        if (event.key === 'Escape') {
+                          skipNextScoreCommitRef.current = true
+                          cancelScoreEdit()
+                        }
+                      }}
+                      autoFocus
+                      aria-label={`Nouveau score de ${team.name}`}
+                    />
+                  ) : (
+                    <strong>{team.score}</strong>
+                  )}
+                  <span>PTS</span>
+                </div>
+              </article>
+            )
+          })}
         </section>
 
         <section className="host-round__queue" aria-labelledby="queue-title">
@@ -522,6 +603,15 @@ function HostRound() {
       />
     </main>
   )
+}
+
+function normalizeTeamScoreValue(value) {
+  const numericValue = Number(String(value || '').trim())
+  if (!Number.isFinite(numericValue)) {
+    return 0
+  }
+
+  return Math.max(0, Math.round(numericValue))
 }
 
 function normalizeQuestionPointsValue(value, fallback = 1) {
