@@ -19,6 +19,7 @@ import {
   removePlayerByRequest,
   removeSocket,
   setQuestionPoints,
+  setTeamScore,
   resumeHostSession,
   resumePlayerSession,
   updatePlayerNickname,
@@ -150,6 +151,15 @@ export function createSocketServer(options = {}) {
     socket.on('host:set-question-points', (payload, callback) => {
       handleEvent(socket, callback, () => {
         const room = setQuestionPoints(store, socket.id, payload)
+        emitRoomState(room)
+        emitPlayerStatuses(room)
+        return { room: serializeRoom(room) }
+      })
+    })
+
+    socket.on('host:set-team-score', (payload, callback) => {
+      handleEvent(socket, callback, () => {
+        const room = setTeamScore(store, socket.id, payload)
         emitRoomState(room)
         emitPlayerStatuses(room)
         return { room: serializeRoom(room) }

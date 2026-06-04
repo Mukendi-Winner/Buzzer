@@ -189,6 +189,13 @@ export function setQuestionPoints(store, hostSocketId, payload) {
   return room
 }
 
+export function setTeamScore(store, hostSocketId, payload) {
+  const room = getHostRoomOrThrow(store, hostSocketId, payload?.roomCode)
+  const team = getTeamOrThrow(room, payload?.teamId)
+  team.score = normalizeTeamScore(payload?.score)
+  return room
+}
+
 export function updatePlayerNickname(store, socketId, payload) {
   const presence = getPresenceOrThrow(store, socketId)
   if (presence.role != 'player') {
@@ -502,6 +509,15 @@ function normalizeHostTeams(teams) {
 
     return { name }
   })
+}
+
+function normalizeTeamScore(value) {
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) {
+    return 0
+  }
+
+  return Math.max(0, Math.round(numericValue))
 }
 
 function normalizeQuestionPoints(value) {
