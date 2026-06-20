@@ -18,6 +18,7 @@ function HostRound() {
   const [busyAction, setBusyAction] = useState('')
   const [confirmAction, setConfirmAction] = useState(null)
   const [showPlayersStatus, setShowPlayersStatus] = useState(false)
+  const [showThemesPanel, setShowThemesPanel] = useState(false)
   const [questionPointsInput, setQuestionPointsInput] = useState(String((room.currentQuestionPoints || 1)))
   const [editingScoreTeamId, setEditingScoreTeamId] = useState(null)
   const [scoreDraft, setScoreDraft] = useState('')
@@ -38,6 +39,7 @@ function HostRound() {
     room.queue.find((entry) => entry.isActive || entry.status === 'pending') || null
   const themeSeries = Array.isArray(room.themeSeries) ? room.themeSeries : []
   const activeThemeSeries = themeSeries[selectedThemeSeriesIndex] || themeSeries[0] || null
+  const activeMysteryTheme = activeThemeSeries?.themes?.find((theme) => theme.isMystery) || null
   const timerDisplay = formatTimerLabel(timerRemainingSeconds)
   const hostSession = readHostSession()
   const roomCode =
@@ -248,8 +250,7 @@ function HostRound() {
     }
 
     const series = themeSeries[selectedThemeSeriesIndex]
-    const mysteryTheme = series?.themes?.find((theme) => theme.isMystery)
-    if (!series || !mysteryTheme) {
+    if (!series?.themes?.length) {
       return
     }
 
@@ -545,75 +546,87 @@ function HostRound() {
           </button>
         </div>
 
-        <section className="host-round__themes" aria-label="Thèmes du jeu">
-          <div className="host-round__themes-header">
-            <h1>Thèmes</h1>
-            <span>{themeSeries.length ? 'Séries configurées' : 'Aucune série'}</span>
-          </div>
+        <div className="host-round__themes-toggle-row">
+          <button
+            type="button"
+            className="host-round__themes-toggle"
+            onClick={() => setShowThemesPanel((current) => !current)}
+          >
+            {showThemesPanel ? 'MASQUER LES THÈMES' : 'AFFICHER LES THÈMES'}
+          </button>
+        </div>
 
-          <div className="host-round__themes-switcher" aria-label="Choisir une série">
-            {themeSeries.map((series, index) => (
-              <button
-                key={series.id || `series-${index}`}
-                type="button"
-                className={`host-round__theme-tab ${
-                  selectedThemeSeriesIndex === index ? 'host-round__theme-tab--active' : ''
-                }`}
-                onClick={() => setSelectedThemeSeriesIndex(index)}
-                aria-pressed={selectedThemeSeriesIndex === index}
-              >
-                {series.label || `Série ${index + 1}`}
-              </button>
-            ))}
-          </div>
+        {showThemesPanel ? (
+          <section className="host-round__themes" aria-label="Thèmes du jeu">
+            <div className="host-round__themes-header">
+              <h1>Thèmes</h1>
+              <span>{themeSeries.length ? 'Séries configurées' : 'Aucune série'}</span>
+            </div>
 
-          {activeThemeSeries ? (
-            <article className="host-round__theme-panel">
-              <div className="host-round__theme-panel-top">
-                <div>
-                  <p>{activeThemeSeries.label || `Série ${selectedThemeSeriesIndex + 1}`}</p>
-                  <strong>3 thèmes</strong>
+            <div className="host-round__themes-switcher" aria-label="Choisir une série">
+              {themeSeries.map((series, index) => (
+                <button
+                  key={series.id || `series-${index}`}
+                  type="button"
+                  className={`host-round__theme-tab ${
+                    selectedThemeSeriesIndex === index ? 'host-round__theme-tab--active' : ''
+                  }`}
+                  onClick={() => setSelectedThemeSeriesIndex(index)}
+                  aria-pressed={selectedThemeSeriesIndex === index}
+                >
+                  {series.label || `Série ${index + 1}`}
+                </button>
+              ))}
+            </div>
+
+            {activeThemeSeries ? (
+              <article className="host-round__theme-panel">
+                <div className="host-round__theme-panel-top">
+                  <div>
+                    <p>{activeThemeSeries.label || `Série ${selectedThemeSeriesIndex + 1}`}</p>
+                    <strong>3 thèmes</strong>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="host-round__theme-reveal"
+                    onClick={revealMysteryTheme}
+                    disabled={busyAction === `reveal-theme-${selectedThemeSeriesIndex}`}
+                  >
+                    {activeMysteryTheme?.revealed
+                      ? 'CACHER LE THÈME MYSTÈRE'
+                      : 'RÉVÉLER LE THÈME MYSTÈRE'}
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  className="host-round__theme-reveal"
-                  onClick={revealMysteryTheme}
-                  disabled={busyAction === `reveal-theme-${selectedThemeSeriesIndex}`}
-                >
-                  {activeThemeSeries.themes?.find((theme) => theme.isMystery)?.revealed
-                    ? 'CACHER LE THÈME MYSTÈRE'
-                    : 'RÉVÉLER LE THÈME MYSTÈRE'}
-                </button>
-              </div>
+                <div className="host-round__theme-list">
+                  {(activeThemeSeries.themes || []).map((theme, index) => {
+                    const isRevealed = Boolean(theme.revealed)
+                    const isMystery = Boolean(theme.isMystery)
 
-              <div className="host-round__theme-list">
-                {(activeThemeSeries.themes || []).map((theme, index) => {
-                  const isMystery = Boolean(theme.isMystery)
-                  const isRevealed = Boolean(theme.revealed)
-
-                  return (
-                    <article
-                      key={theme.id || `${activeThemeSeries.id}-${index}`}
-                      className={`host-round__theme-card ${
-                        isMystery ? 'host-round__theme-card--mystery' : ''
-                      } ${isRevealed ? 'host-round__theme-card--revealed' : ''}`}
-                    >
-                      <span className="host-round__theme-index">THÈME {index + 1}</span>
-                      <strong>{isMystery && !isRevealed ? 'MYSTÈRE' : theme.title}</strong>
-                      <p>{isMystery ? (isRevealed ? 'Mystère révélé' : 'Thème caché') : 'Dévoilé'}</p>
-                    </article>
-                  )
-                })}
-              </div>
-            </article>
-          ) : (
-            <article className="host-round__theme-panel host-round__theme-panel--empty">
-              <strong>Aucun thème configuré</strong>
-              <p>Complétez l&apos;étape de configuration des thèmes avant de lancer la partie.</p>
-            </article>
-          )}
-        </section>
+                    return (
+                      <article
+                        key={theme.id || `${activeThemeSeries.id}-${index}`}
+                        className={`host-round__theme-card ${
+                          isMystery ? 'host-round__theme-card--mystery' : ''
+                        } ${isRevealed ? 'host-round__theme-card--revealed' : 'host-round__theme-card--hidden'}`}
+                      >
+                        <span className="host-round__theme-index">THÈME {index + 1}</span>
+                        <strong>{isRevealed ? theme.title : 'THÈME MYSTÈRE'}</strong>
+                        <p>{isRevealed ? (isMystery ? 'Thème mystère' : 'Thème révélé') : 'En attente'}</p>
+                      </article>
+                    )
+                  })}
+                </div>
+              </article>
+            ) : (
+              <article className="host-round__theme-panel host-round__theme-panel--empty">
+                <strong>Aucun thème configuré</strong>
+                <p>Complétez l&apos;étape de configuration des thèmes avant de lancer la partie.</p>
+              </article>
+            )}
+          </section>
+        ) : null}
 
         <section className="host-round__scoreboard" aria-label="Points des équipes">
           {room.teams.map((team) => {

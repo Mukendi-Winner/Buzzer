@@ -218,6 +218,7 @@ export function revealThemeMystery(store, hostSocketId, payload) {
   }
 
   mysteryTheme.revealed = !mysteryTheme.revealed
+
   return { room, seriesIndex, themeId: mysteryTheme.id, revealed: mysteryTheme.revealed }
 }
 

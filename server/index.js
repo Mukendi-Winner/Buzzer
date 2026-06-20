@@ -179,10 +179,10 @@ export function createSocketServer(options = {}) {
 
     socket.on('host:reveal-theme-mystery', (payload, callback) => {
       handleEvent(socket, callback, () => {
-        const { room, seriesIndex, themeId, revealed } = revealThemeMystery(store, socket.id, payload)
+        const { room, seriesIndex, revealed } = revealThemeMystery(store, socket.id, payload)
         emitRoomState(room)
         emitPlayerStatuses(room)
-        return { room: serializeRoom(room), seriesIndex, themeId, revealed }
+        return { room: serializeRoom(room), seriesIndex, revealed }
       })
     })
 

@@ -211,6 +211,7 @@ function formatBuzzTime(buzzedAt) {
 
 function normalizeThemeSeries(series, seriesIndex) {
   const themes = Array.isArray(series?.themes) ? series.themes : []
+  const allThemesHidden = themes.length > 0 && themes.every((theme) => !theme?.revealed)
 
   return {
     id: series?.id || `series-${seriesIndex + 1}`,
@@ -219,7 +220,9 @@ function normalizeThemeSeries(series, seriesIndex) {
       id: theme?.id || `series-${seriesIndex + 1}-theme-${themeIndex + 1}`,
       title: theme?.title || `Thème ${themeIndex + 1}`,
       isMystery: Boolean(theme?.isMystery),
-      revealed: Boolean(theme?.revealed),
+      revealed: allThemesHidden
+        ? !Boolean(theme?.isMystery)
+        : Boolean(theme?.revealed),
     })),
   }
 }
