@@ -35,6 +35,7 @@ export function createRoom(store, hostSocketId, payload) {
     roundOpen: false,
     activeBuzzIndex: null,
     currentQuestionPoints: DEFAULT_ROUND_POINTS,
+    themeSeries: [],
     teams: teams.map((team, index) => ({
       id: `team-${index + 1}`,
       name: team.name,
@@ -194,6 +195,30 @@ export function setTeamScore(store, hostSocketId, payload) {
   const team = getTeamOrThrow(room, payload?.teamId)
   team.score = normalizeTeamScore(payload?.score)
   return room
+}
+
+export function setThemeSeries(store, hostSocketId, payload) {
+  const room = getHostRoomOrThrow(store, hostSocketId, payload?.roomCode)
+  room.themeSeries = normalizeThemeSeries(payload?.themeSeries)
+  return room
+}
+
+export function revealThemeMystery(store, hostSocketId, payload) {
+  const room = getHostRoomOrThrow(store, hostSocketId, payload?.roomCode)
+  const seriesIndex = normalizeThemeSeriesIndex(payload?.seriesIndex)
+  const series = room.themeSeries[seriesIndex]
+
+  if (!series) {
+    throw new SocketEventError('INVALID_THEME_SERIES', 'Selected theme series does not exist.')
+  }
+
+  const mysteryTheme = series.themes.find((theme) => theme.isMystery)
+  if (!mysteryTheme) {
+    throw new SocketEventError('INVALID_THEME_SERIES', 'Selected series has no mystery theme.')
+  }
+
+  mysteryTheme.revealed = !mysteryTheme.revealed
+  return { room, seriesIndex, themeId: mysteryTheme.id, revealed: mysteryTheme.revealed }
 }
 
 export function updatePlayerNickname(store, socketId, payload) {
@@ -396,6 +421,16 @@ export function serializeRoom(room) {
     roundOpen: room.roundOpen,
     activeBuzzIndex: room.activeBuzzIndex,
     currentQuestionPoints: room.currentQuestionPoints,
+    themeSeries: room.themeSeries.map((series, seriesIndex) => ({
+      id: series.id || `series-${seriesIndex + 1}`,
+      label: series.label || `Série ${seriesIndex + 1}`,
+      themes: series.themes.map((theme, themeIndex) => ({
+        id: theme.id || `series-${seriesIndex + 1}-theme-${themeIndex + 1}`,
+        title: theme.title,
+        isMystery: Boolean(theme.isMystery),
+        revealed: Boolean(theme.revealed),
+      })),
+    })),
     teams: room.teams.map((team) => ({
       id: team.id,
       name: team.name,
@@ -527,6 +562,63 @@ function normalizeQuestionPoints(value) {
   }
 
   return Math.min(MAX_ROUND_POINTS, Math.max(1, Math.round(numericValue)))
+}
+
+function normalizeThemeSeries(themeSeries) {
+  if (!Array.isArray(themeSeries) || themeSeries.length !== 2) {
+    throw new SocketEventError('INVALID_THEME_SERIES', 'Exactly two theme series are required.')
+  }
+
+  return themeSeries.map((series, seriesIndex) => {
+    const themes = Array.isArray(series?.themes) ? series.themes : null
+    if (!themes || themes.length !== 3) {
+      throw new SocketEventError(
+        'INVALID_THEME_SERIES',
+        `Theme series ${seriesIndex + 1} must contain exactly three themes.`,
+      )
+    }
+
+    const mysteryIndex = normalizeThemeMysteryIndex(series?.mysteryIndex)
+
+    return {
+      id: series?.id || `series-${seriesIndex + 1}`,
+      label: String(series?.label || '').trim() || `Série ${seriesIndex + 1}`,
+      themes: themes.map((theme, themeIndex) => {
+        const title = String(theme?.title || '').trim()
+        if (!title) {
+          throw new SocketEventError(
+            'INVALID_THEME_SERIES',
+            `Theme ${themeIndex + 1} in series ${seriesIndex + 1} must have a title.`,
+          )
+        }
+
+        return {
+          id: theme?.id || `series-${seriesIndex + 1}-theme-${themeIndex + 1}`,
+          title,
+          isMystery: themeIndex === mysteryIndex,
+          revealed: themeIndex !== mysteryIndex,
+        }
+      }),
+    }
+  })
+}
+
+function normalizeThemeSeriesIndex(value) {
+  const numericValue = Number(value)
+  if (!Number.isInteger(numericValue) || numericValue < 0 || numericValue > 1) {
+    throw new SocketEventError('INVALID_THEME_SERIES', 'Selected theme series is invalid.')
+  }
+
+  return numericValue
+}
+
+function normalizeThemeMysteryIndex(value) {
+  const numericValue = Number(value)
+  if (!Number.isInteger(numericValue) || numericValue < 0 || numericValue > 2) {
+    throw new SocketEventError('INVALID_THEME_SERIES', 'Selected mystery theme is invalid.')
+  }
+
+  return numericValue
 }
 
 function sanitizeNickname(value) {

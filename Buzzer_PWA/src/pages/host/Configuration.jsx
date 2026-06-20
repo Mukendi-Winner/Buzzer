@@ -33,9 +33,13 @@ function Configuration() {
         roomCode: room.code,
         hostSessionToken: response.hostSessionToken,
         role: 'host',
+        timerDurationSeconds: 60,
+        timerRemainingSeconds: 60,
+        timerEndsAt: null,
+        isTimerRunning: false,
       })
 
-      navigate('/players-room', {
+      navigate('/themes-setup', {
         state: { room },
       })
     } catch (socketError) {

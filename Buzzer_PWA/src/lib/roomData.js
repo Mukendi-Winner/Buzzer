@@ -55,10 +55,32 @@ const defaultQueue = [
   },
 ]
 
+const defaultThemeSeries = [
+  {
+    id: 'series-1',
+    label: 'Série 1',
+    themes: [
+      { id: 'series-1-theme-1', title: 'Culture générale', isMystery: false, revealed: true },
+      { id: 'series-1-theme-2', title: 'Histoire', isMystery: false, revealed: true },
+      { id: 'series-1-theme-3', title: 'Sport', isMystery: true, revealed: false },
+    ],
+  },
+  {
+    id: 'series-2',
+    label: 'Série 2',
+    themes: [
+      { id: 'series-2-theme-1', title: 'Cinéma', isMystery: false, revealed: true },
+      { id: 'series-2-theme-2', title: 'Sciences', isMystery: true, revealed: false },
+      { id: 'series-2-theme-3', title: 'Géographie', isMystery: false, revealed: true },
+    ],
+  },
+]
+
 export const demoRoom = {
   gameCode: 'XJ-992',
   teams: defaultTeams,
   queue: defaultQueue,
+  themeSeries: defaultThemeSeries,
 }
 
 export function buildRoomData(room) {
@@ -70,6 +92,10 @@ export function buildRoomData(room) {
   const hasLiveQueue = Array.isArray(room.queue) || Array.isArray(room.buzzQueue)
   const baseTeams =
     Array.isArray(room.teams) && room.teams.length > 0 ? room.teams : defaultTeams
+  const themeSeries =
+    Array.isArray(room.themeSeries) && room.themeSeries.length > 0
+      ? room.themeSeries.map((series, seriesIndex) => normalizeThemeSeries(series, seriesIndex))
+      : []
   const sourcePlayers = Array.isArray(room.players) ? room.players : []
   const teams = baseTeams.slice(0, 2).map((incomingTeam, index) => {
     const defaultTeam = defaultTeams[index] || defaultTeams[0]
@@ -150,6 +176,7 @@ export function buildRoomData(room) {
     teams,
     queue,
     players: Array.isArray(room.players) ? room.players : [],
+    themeSeries,
   }
 }
 
@@ -180,4 +207,19 @@ function formatBuzzTime(buzzedAt) {
 
   const seconds = Math.max(0, (buzzedAt % 100000) / 1000)
   return `${seconds.toFixed(2)}s`
+}
+
+function normalizeThemeSeries(series, seriesIndex) {
+  const themes = Array.isArray(series?.themes) ? series.themes : []
+
+  return {
+    id: series?.id || `series-${seriesIndex + 1}`,
+    label: series?.label || `Série ${seriesIndex + 1}`,
+    themes: themes.map((theme, themeIndex) => ({
+      id: theme?.id || `series-${seriesIndex + 1}-theme-${themeIndex + 1}`,
+      title: theme?.title || `Thème ${themeIndex + 1}`,
+      isMystery: Boolean(theme?.isMystery),
+      revealed: Boolean(theme?.revealed),
+    })),
+  }
 }

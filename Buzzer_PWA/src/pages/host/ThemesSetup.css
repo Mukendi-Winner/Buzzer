@@ -1,0 +1,245 @@
+.themes-setup-page {
+  min-height: 100svh;
+  padding: 12px 28px 36px;
+  background: linear-gradient(180deg, #fbf7fc 0%, #faf5fb 100%);
+  color: #3b3945;
+}
+
+.themes-setup-brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #733d78;
+  margin-bottom: 20px;
+}
+
+.themes-setup-brand__mark {
+  width: 136px;
+  height: auto;
+  flex: none;
+}
+
+.themes-setup-content {
+  display: grid;
+  align-content: start;
+}
+
+.themes-setup-hero {
+  margin-bottom: 34px;
+}
+
+.themes-setup-kicker {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  font-weight: 800;
+  color: #b08bb2;
+}
+
+.themes-setup-hero h1 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+  font-weight: 800;
+  color: #3e3b47;
+}
+
+.themes-setup-hero p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #948e9d;
+}
+
+.themes-setup-form {
+  display: grid;
+  gap: 22px;
+}
+
+.themes-setup-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.themes-setup-card {
+  position: relative;
+  border-radius: 28px;
+  padding: 18px 16px 16px;
+  background: rgba(248, 243, 249, 0.96);
+  box-shadow: 0 10px 30px rgba(89, 53, 91, 0.04);
+}
+
+.themes-setup-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.themes-setup-card__header p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a4f8f;
+}
+
+.themes-setup-card__header span {
+  font-size: 11px;
+  color: #b4aebb;
+}
+
+.themes-setup-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.themes-setup-field {
+  display: grid;
+  gap: 7px;
+}
+
+.themes-setup-field span,
+.themes-setup-mystery span {
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  color: #9f98a8;
+}
+
+.themes-setup-field input,
+.themes-setup-mystery select {
+  width: 100%;
+  box-sizing: border-box;
+  height: 38px;
+  border: 0;
+  border-bottom: 1px solid #7f8290;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 0 12px;
+  font: inherit;
+  font-size: 15px;
+  color: #5d2a67;
+}
+
+.themes-setup-field input::placeholder {
+  color: #e6dfe9;
+}
+
+.themes-setup-field input:focus,
+.themes-setup-mystery select:focus {
+  outline: none;
+  border-bottom-color: #733d78;
+}
+
+.themes-setup-mystery {
+  display: grid;
+  gap: 7px;
+  margin-top: 18px;
+}
+
+.themes-setup-submit {
+  margin-top: 10px;
+  height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: #8a4f8f;
+  color: #fbf3fb;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease;
+}
+
+.themes-setup-submit:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+.themes-setup-submit:focus-visible {
+  outline: 3px solid rgba(138, 79, 143, 0.22);
+  outline-offset: 3px;
+}
+
+.themes-setup-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.themes-setup-error {
+  margin: 0;
+  font-size: 13px;
+  color: #a54969;
+}
+
+@media (min-width: 1024px) {
+  .themes-setup-page {
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(320px, 35vw) 1fr;
+    background: linear-gradient(90deg, #fffefe 0 35%, #fbf6fc 35% 100%);
+    align-items: center;
+  }
+
+  .themes-setup-brand {
+    min-height: 100svh;
+    margin-bottom: 0;
+    justify-self: center;
+    align-self: center;
+  }
+
+  .themes-setup-brand__mark {
+    width: clamp(220px, 18vw, 290px);
+  }
+
+  .themes-setup-content {
+    min-height: 100svh;
+    width: min(100%, 760px);
+    margin: 0 auto;
+    padding: 44px 38px 34px;
+    align-content: center;
+  }
+
+  .themes-setup-hero {
+    margin-bottom: 28px;
+  }
+
+  .themes-setup-hero h1 {
+    font-size: 28px;
+  }
+
+  .themes-setup-hero p {
+    font-size: 13px;
+  }
+
+  .themes-setup-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .themes-setup-card {
+    padding: 20px 18px 18px;
+  }
+
+  .themes-setup-field input,
+  .themes-setup-mystery select {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 15px;
+  }
+
+  .themes-setup-submit {
+    width: min(100%, 320px);
+    margin: 16px auto 0;
+    height: 56px;
+    font-size: 13px;
+  }
+}

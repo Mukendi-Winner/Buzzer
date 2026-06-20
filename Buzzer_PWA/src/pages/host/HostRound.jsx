@@ -12,6 +12,7 @@ import { getSocket } from '../../lib/socket.js'
 function HostRound() {
   const navigate = useNavigate()
   const location = useLocation()
+  const initialTimerState = getInitialTimerState()
   const [room, setRoom] = useState(() => buildRoomData(location.state?.room))
   const [error, setError] = useState('')
   const [busyAction, setBusyAction] = useState('')
@@ -20,6 +21,13 @@ function HostRound() {
   const [questionPointsInput, setQuestionPointsInput] = useState(String((room.currentQuestionPoints || 1)))
   const [editingScoreTeamId, setEditingScoreTeamId] = useState(null)
   const [scoreDraft, setScoreDraft] = useState('')
+  const [selectedThemeSeriesIndex, setSelectedThemeSeriesIndex] = useState(0)
+  const [timerMinuteDraft, setTimerMinuteDraft] = useState(initialTimerState.minuteDraft)
+  const [timerSecondDraft, setTimerSecondDraft] = useState(initialTimerState.secondDraft)
+  const [timerDurationSeconds, setTimerDurationSeconds] = useState(initialTimerState.durationSeconds)
+  const [timerRemainingSeconds, setTimerRemainingSeconds] = useState(initialTimerState.remainingSeconds)
+  const [timerEndsAt, setTimerEndsAt] = useState(initialTimerState.endsAt)
+  const [isTimerRunning, setIsTimerRunning] = useState(initialTimerState.isRunning)
   const openedRoundRef = useRef(false)
   const shouldAutoOpenRoundRef = useRef(Boolean(location.state?.room))
   const pointsSyncTimeoutRef = useRef(null)
@@ -28,6 +36,9 @@ function HostRound() {
 
   const activeEntry =
     room.queue.find((entry) => entry.isActive || entry.status === 'pending') || null
+  const themeSeries = Array.isArray(room.themeSeries) ? room.themeSeries : []
+  const activeThemeSeries = themeSeries[selectedThemeSeriesIndex] || themeSeries[0] || null
+  const timerDisplay = formatTimerLabel(timerRemainingSeconds)
   const hostSession = readHostSession()
   const roomCode =
     location.state?.room?.code || location.state?.room?.gameCode || hostSession?.roomCode || room.gameCode
@@ -48,6 +59,12 @@ function HostRound() {
 
       if (!pointsInputFocusedRef.current) {
         setQuestionPointsInput(String(nextRoom.currentQuestionPoints || 1))
+      }
+
+      if (nextRoom.themeSeries.length > 0) {
+        setSelectedThemeSeriesIndex((currentIndex) =>
+          Math.min(currentIndex, nextRoom.themeSeries.length - 1),
+        )
       }
     }
 
@@ -103,6 +120,43 @@ function HostRound() {
       socket.off('connect', resumeHostSession)
     }
   }, [])
+
+  useEffect(() => {
+    if (!isTimerRunning || !timerEndsAt) {
+      return undefined
+    }
+
+    const syncTimer = () => {
+      const nextRemaining = computeTimerRemaining(timerEndsAt)
+      if (nextRemaining <= 0) {
+        setTimerRemainingSeconds(0)
+        setIsTimerRunning(false)
+        setTimerEndsAt(null)
+        setTimerMinuteDraft('0')
+        setTimerSecondDraft('00')
+        return
+      }
+
+      setTimerRemainingSeconds(nextRemaining)
+    }
+
+    syncTimer()
+    const intervalId = window.setInterval(syncTimer, 1000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [isTimerRunning, timerEndsAt])
+
+  useEffect(() => {
+    writeHostSession({
+      ...(readHostSession() || {}),
+      timerDurationSeconds,
+      timerRemainingSeconds,
+      timerEndsAt,
+      isTimerRunning,
+    })
+  }, [timerDurationSeconds, timerRemainingSeconds, timerEndsAt, isTimerRunning])
 
   useEffect(() => () => {
     if (pointsSyncTimeoutRef.current) {
@@ -186,6 +240,89 @@ function HostRound() {
     } catch (socketError) {
       setError(socketError.message || 'Impossible de changer les points.')
     }
+  }
+
+  async function revealMysteryTheme() {
+    if (!roomCode || selectedThemeSeriesIndex < 0) {
+      return
+    }
+
+    const series = themeSeries[selectedThemeSeriesIndex]
+    const mysteryTheme = series?.themes?.find((theme) => theme.isMystery)
+    if (!series || !mysteryTheme) {
+      return
+    }
+
+    setBusyAction(`reveal-theme-${selectedThemeSeriesIndex}`)
+    setError('')
+
+    try {
+      const socket = getSocket()
+      await emitWithAck(socket, 'host:reveal-theme-mystery', {
+        roomCode,
+        seriesIndex: selectedThemeSeriesIndex,
+      })
+    } catch (socketError) {
+      setError(socketError.message || 'Impossible de reveler le theme mystere.')
+    } finally {
+      setBusyAction('')
+    }
+  }
+
+  function applyTimerDraft() {
+    if (isTimerRunning) {
+      return
+    }
+
+    const nextDurationSeconds = clampTimerDurationSeconds(
+      buildTimerSeconds(timerMinuteDraft, timerSecondDraft),
+    )
+    const nextMinutes = Math.floor(nextDurationSeconds / 60)
+    const nextSeconds = nextDurationSeconds % 60
+
+    setTimerMinuteDraft(String(nextMinutes))
+    setTimerSecondDraft(padTimerPart(nextSeconds))
+    setTimerDurationSeconds(nextDurationSeconds)
+    setTimerRemainingSeconds(nextDurationSeconds)
+    setTimerEndsAt(null)
+  }
+
+  function toggleTimer() {
+    if (isTimerRunning) {
+      const nextRemaining = computeTimerRemaining(timerEndsAt)
+      setTimerRemainingSeconds(nextRemaining)
+      setTimerEndsAt(null)
+      setIsTimerRunning(false)
+      setTimerMinuteDraft(String(Math.floor(nextRemaining / 60)))
+      setTimerSecondDraft(padTimerPart(nextRemaining % 60))
+      return
+    }
+
+    const nextDurationSeconds = clampTimerDurationSeconds(
+      buildTimerSeconds(timerMinuteDraft, timerSecondDraft),
+    )
+
+    if (nextDurationSeconds <= 0) {
+      return
+    }
+
+    const nextMinutes = Math.floor(nextDurationSeconds / 60)
+    const nextSeconds = nextDurationSeconds % 60
+
+    setTimerMinuteDraft(String(nextMinutes))
+    setTimerSecondDraft(padTimerPart(nextSeconds))
+    setTimerDurationSeconds(nextDurationSeconds)
+    setTimerRemainingSeconds(nextDurationSeconds)
+    setTimerEndsAt(Date.now() + nextDurationSeconds * 1000)
+    setIsTimerRunning(true)
+  }
+
+  function resetTimer() {
+    setTimerMinuteDraft(String(Math.floor(timerDurationSeconds / 60)))
+    setTimerSecondDraft(padTimerPart(timerDurationSeconds % 60))
+    setTimerRemainingSeconds(timerDurationSeconds)
+    setTimerEndsAt(null)
+    setIsTimerRunning(false)
   }
 
   function scheduleQuestionPointsSync(nextPoints, delay = 250) {
@@ -314,6 +451,90 @@ function HostRound() {
           <strong>{room.gameCode}</strong>
         </section>
 
+        <section className="host-round__timer" aria-label="Chrono de la question">
+          <div className="host-round__timer-header">
+            <div>
+              <p>CHRONO</p>
+              <strong>{timerDisplay}</strong>
+            </div>
+            <span>{isTimerRunning ? 'En cours' : 'En pause'}</span>
+          </div>
+
+          <div className="host-round__timer-edit">
+            <label className="host-round__timer-field">
+              <span>MIN</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={timerMinuteDraft}
+                disabled={isTimerRunning}
+                onChange={(event) => setTimerMinuteDraft(sanitizeTimerInput(event.target.value))}
+                onBlur={() => {
+                  if (isTimerRunning) {
+                    return
+                  }
+                  setTimerMinuteDraft(normalizeTimerDraftPart(timerMinuteDraft, 59))
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.currentTarget.blur()
+                  }
+                }}
+                aria-label="Minutes"
+              />
+            </label>
+            <span className="host-round__timer-separator">:</span>
+            <label className="host-round__timer-field">
+              <span>SEC</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={timerSecondDraft}
+                disabled={isTimerRunning}
+                onChange={(event) => setTimerSecondDraft(sanitizeTimerInput(event.target.value))}
+                onBlur={() => {
+                  if (isTimerRunning) {
+                    return
+                  }
+                  setTimerSecondDraft(normalizeTimerDraftPart(timerSecondDraft, 59, true))
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.currentTarget.blur()
+                  }
+                }}
+                aria-label="Secondes"
+              />
+            </label>
+
+            <button
+              type="button"
+              className="host-round__timer-apply"
+              onClick={applyTimerDraft}
+              disabled={isTimerRunning}
+            >
+              APPLIQUER
+            </button>
+          </div>
+
+          <div className="host-round__timer-actions">
+            <button
+              type="button"
+              className="host-round__timer-action host-round__timer-action--primary"
+              onClick={toggleTimer}
+            >
+              {isTimerRunning ? 'PAUSE' : 'DÉMARRER'}
+            </button>
+            <button
+              type="button"
+              className="host-round__timer-action host-round__timer-action--ghost"
+              onClick={resetTimer}
+            >
+              RÉINITIALISER
+            </button>
+          </div>
+        </section>
+
         <div className="host-round__top-actions">
           <button
             type="button"
@@ -323,6 +544,76 @@ function HostRound() {
             ÉTAT DES JOUEURS
           </button>
         </div>
+
+        <section className="host-round__themes" aria-label="Thèmes du jeu">
+          <div className="host-round__themes-header">
+            <h1>Thèmes</h1>
+            <span>{themeSeries.length ? 'Séries configurées' : 'Aucune série'}</span>
+          </div>
+
+          <div className="host-round__themes-switcher" aria-label="Choisir une série">
+            {themeSeries.map((series, index) => (
+              <button
+                key={series.id || `series-${index}`}
+                type="button"
+                className={`host-round__theme-tab ${
+                  selectedThemeSeriesIndex === index ? 'host-round__theme-tab--active' : ''
+                }`}
+                onClick={() => setSelectedThemeSeriesIndex(index)}
+                aria-pressed={selectedThemeSeriesIndex === index}
+              >
+                {series.label || `Série ${index + 1}`}
+              </button>
+            ))}
+          </div>
+
+          {activeThemeSeries ? (
+            <article className="host-round__theme-panel">
+              <div className="host-round__theme-panel-top">
+                <div>
+                  <p>{activeThemeSeries.label || `Série ${selectedThemeSeriesIndex + 1}`}</p>
+                  <strong>3 thèmes</strong>
+                </div>
+
+                <button
+                  type="button"
+                  className="host-round__theme-reveal"
+                  onClick={revealMysteryTheme}
+                  disabled={busyAction === `reveal-theme-${selectedThemeSeriesIndex}`}
+                >
+                  {activeThemeSeries.themes?.find((theme) => theme.isMystery)?.revealed
+                    ? 'CACHER LE THÈME MYSTÈRE'
+                    : 'RÉVÉLER LE THÈME MYSTÈRE'}
+                </button>
+              </div>
+
+              <div className="host-round__theme-list">
+                {(activeThemeSeries.themes || []).map((theme, index) => {
+                  const isMystery = Boolean(theme.isMystery)
+                  const isRevealed = Boolean(theme.revealed)
+
+                  return (
+                    <article
+                      key={theme.id || `${activeThemeSeries.id}-${index}`}
+                      className={`host-round__theme-card ${
+                        isMystery ? 'host-round__theme-card--mystery' : ''
+                      } ${isRevealed ? 'host-round__theme-card--revealed' : ''}`}
+                    >
+                      <span className="host-round__theme-index">THÈME {index + 1}</span>
+                      <strong>{isMystery && !isRevealed ? 'MYSTÈRE' : theme.title}</strong>
+                      <p>{isMystery ? (isRevealed ? 'Mystère révélé' : 'Thème caché') : 'Dévoilé'}</p>
+                    </article>
+                  )
+                })}
+              </div>
+            </article>
+          ) : (
+            <article className="host-round__theme-panel host-round__theme-panel--empty">
+              <strong>Aucun thème configuré</strong>
+              <p>Complétez l&apos;étape de configuration des thèmes avant de lancer la partie.</p>
+            </article>
+          )}
+        </section>
 
         <section className="host-round__scoreboard" aria-label="Points des équipes">
           {room.teams.map((team) => {
@@ -603,6 +894,84 @@ function HostRound() {
       />
     </main>
   )
+}
+
+function getInitialTimerState() {
+  const hostSession = readHostSession()
+  const durationSeconds = clampTimerDurationSeconds(
+    hostSession?.timerDurationSeconds ?? 60,
+  )
+  const storedRemaining = clampTimerDurationSeconds(
+    hostSession?.timerRemainingSeconds ?? durationSeconds,
+  )
+  const storedEndsAt = Number(hostSession?.timerEndsAt)
+  const isRunning = Boolean(hostSession?.isTimerRunning) && Number.isFinite(storedEndsAt)
+  const remainingSeconds = isRunning
+    ? computeTimerRemaining(storedEndsAt)
+    : storedRemaining
+  const normalizedRemaining = clampTimerDurationSeconds(
+    Number.isFinite(remainingSeconds) ? remainingSeconds : durationSeconds,
+  )
+  const draftSeconds = Boolean(hostSession?.isTimerRunning)
+    ? normalizedRemaining
+    : durationSeconds
+
+  return {
+    minuteDraft: String(Math.floor(draftSeconds / 60)),
+    secondDraft: padTimerPart(draftSeconds % 60),
+    durationSeconds,
+    remainingSeconds: normalizedRemaining,
+    endsAt: isRunning && normalizedRemaining > 0 ? storedEndsAt : null,
+    isRunning: isRunning && normalizedRemaining > 0,
+  }
+}
+
+function sanitizeTimerInput(value) {
+  return String(value || '').replace(/[^0-9]/g, '').slice(0, 2)
+}
+
+function normalizeTimerDraftPart(value, max = 59, pad = false) {
+  const numericValue = Number(String(value || '').trim())
+  const normalizedValue = Number.isFinite(numericValue)
+    ? Math.min(max, Math.max(0, Math.round(numericValue)))
+    : 0
+
+  return pad ? padTimerPart(normalizedValue) : String(normalizedValue)
+}
+
+function buildTimerSeconds(minutesValue, secondsValue) {
+  const minutes = Math.min(59, Math.max(0, Number(normalizeTimerDraftPart(minutesValue))))
+  const seconds = Math.min(59, Math.max(0, Number(normalizeTimerDraftPart(secondsValue))))
+  return minutes * 60 + seconds
+}
+
+function clampTimerDurationSeconds(value) {
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) {
+    return 0
+  }
+
+  return Math.min(3599, Math.max(0, Math.round(numericValue)))
+}
+
+function computeTimerRemaining(endsAt) {
+  const numericEndsAt = Number(endsAt)
+  if (!Number.isFinite(numericEndsAt)) {
+    return 0
+  }
+
+  return clampTimerDurationSeconds(Math.ceil((numericEndsAt - Date.now()) / 1000))
+}
+
+function padTimerPart(value) {
+  return String(Math.min(59, Math.max(0, Math.round(Number(value) || 0)))).padStart(2, '0')
+}
+
+function formatTimerLabel(secondsValue) {
+  const totalSeconds = clampTimerDurationSeconds(secondsValue)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${padTimerPart(minutes)}:${padTimerPart(seconds)}`
 }
 
 function normalizeTeamScoreValue(value) {

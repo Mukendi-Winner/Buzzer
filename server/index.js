@@ -20,8 +20,10 @@ import {
   removeSocket,
   setQuestionPoints,
   setTeamScore,
+  setThemeSeries,
   resumeHostSession,
   resumePlayerSession,
+  revealThemeMystery,
   updatePlayerNickname,
   serializeRoom,
 } from './roomStore.js'
@@ -163,6 +165,24 @@ export function createSocketServer(options = {}) {
         emitRoomState(room)
         emitPlayerStatuses(room)
         return { room: serializeRoom(room) }
+      })
+    })
+
+    socket.on('host:set-theme-series', (payload, callback) => {
+      handleEvent(socket, callback, () => {
+        const room = setThemeSeries(store, socket.id, payload)
+        emitRoomState(room)
+        emitPlayerStatuses(room)
+        return { room: serializeRoom(room) }
+      })
+    })
+
+    socket.on('host:reveal-theme-mystery', (payload, callback) => {
+      handleEvent(socket, callback, () => {
+        const { room, seriesIndex, themeId, revealed } = revealThemeMystery(store, socket.id, payload)
+        emitRoomState(room)
+        emitPlayerStatuses(room)
+        return { room: serializeRoom(room), seriesIndex, themeId, revealed }
       })
     })
 
